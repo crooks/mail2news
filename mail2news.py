@@ -26,6 +26,7 @@ import email
 import StringIO
 import sys
 import logging
+from string import ascii_lowercase
 from email.Utils import formatdate
 from nntplib import NNTP
 from optparse import OptionParser
@@ -170,6 +171,18 @@ def ngvalidate(newsgroups):
         logger.info('Message contains %d newsgroups, exceeding crosspost limit of %d. Rejecting.', len(goodng), config.maxcrossposts)
         sys.exit(0)
     return header
+
+def lineofgarbage(blks, blklen):
+    """Generate a text string containing blocks of random characters,
+    seperated by a whitespace character.  This can be useful for avoiding
+    MD5 hash collisions on PGP encrypted messages."""
+    chars = ascii_lowercase
+    garbage = ""
+    for block in range(blks):
+        for blkchar in range(blklen):
+            garbage = garbage + random.choice(chars)
+        garbage = garbage + " "
+    return garbage
 
 def middate():
     """Return a date in the format yyyymmdd.  This is useful for generating
@@ -366,7 +379,12 @@ def msgparse(message):
         logger.info('This is a multipart message.  Bypassing payload parsing.')
     else:
         payload = msg.get_payload(decode=1)
-        msg.set_payload(body_parse(payload))
+        filter_payload = body_parse(payload)
+        if msg.has_key('Newsgroups'):
+            if msg['Newsgroups'] == "alt.anonymous.messages":
+                logger.debug('Adding line of garbage to a.a.m destination.')
+                final_payload = filter_payload + "\n\n" + lineofgarbage(10,6)
+        msg.set_payload(final_payload)
 
     return msg['Message-ID'], dest_server, msg.as_string()
 
