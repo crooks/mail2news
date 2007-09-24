@@ -26,7 +26,7 @@ import email
 import StringIO
 import sys
 import logging
-from string import ascii_lowercase
+import os.path
 from email.Utils import formatdate
 from nntplib import NNTP
 from optparse import OptionParser
@@ -43,7 +43,16 @@ def init_logging():
     global logger
     logger = logging.getLogger('m2n')
     try:
-        hdlr = logging.FileHandler(options.logfile)
+        if options.logfile == 'rotate':
+            filename = "/var/log/mail2news/%s-%s-%s-%s" % ymd()
+            if not os.path.isfile(filename):
+                lf = open(filename, 'w')
+                lf.close()
+                os.chmod(filename, 0644)
+            logger.debug('Using rotational logfile %s', filename)
+            hdlr = logging.FileHandler(filename)
+        else:
+            hdlr = logging.FileHandler(options.logfile)
     except IOError:
         print "Error: Unable to initialize logger.  Check file permissions?"
         sys.exit(1)
@@ -95,11 +104,11 @@ def parse_recipient(user):
         user = domainchk.group(1)
     userfmt = re.match('(mail2news|mail2news_nospam)\-([0-9]{8})\-(.*)', user)
     if userfmt:
-        logger.debug('Message has a correctly formatted recipient. Validating it.')
+        logger.info('Message has a correctly formatted recipient. Validating it.')
         # Check to see if the header includes a 'nospam' instruction.
         nospam = False
         if userfmt.group(1) == 'mail2news_nospam':
-            logger.debug('Message includes a nospam directive.  Will munge headers accordingly.')
+            logger.info('Message includes a nospam directive.  Will munge headers accordingly.')
             nospam = True
         # Extract the Newsgroups components and replace the '=' delimiters
         # with ','.
@@ -108,7 +117,7 @@ def parse_recipient(user):
         stamp = userfmt.group(2)
         return stamp, newsgroups, nospam
     else:
-        logger.debug('Badly formatted recipient.  Rejecting message.')
+        logger.warn('Badly formatted recipient.  Rejecting message.')
         sys.exit(0)
 
 def validate_stamp(stamp):
@@ -126,15 +135,16 @@ def validate_stamp(stamp):
     try:
         nowtime = datetime.datetime(year,month,day)
     except:
-        logger.info('Malformed date element. Rejecting message.')
+        logger.warn('Malformed date element. Rejecting message.')
         sys.exit(0)
 
     # By this point, the supplied date arg must be valid, but does
     # it fall within acceptable bounds?
     if nowtime > beforetime and nowtime < aftertime:
+        logger.info('Timesstamp (%s) is valid and within bounds.', stamp)
         return True
     else:
-        logger.info('Timestamp (%s) is out of bounds.  Rejecting message.', stamp)
+        logger.warn('Timestamp (%s) is out of bounds.  Rejecting message.', stamp)
         sys.exit(0)
 
 def ngvalidate(newsgroups):
@@ -156,7 +166,7 @@ def ngvalidate(newsgroups):
 
     # Not point proceeding if there are no valid Newsgroups.
     if len(goodng) < 1:
-        logger.info("Message has no valid newsgroups.  Rejecting it.")
+        logger.warn("Message has no valid newsgroups.  Rejecting it.")
         sys.exit(0)
 
     # Create a valid entry for a Newsgroups header.  The first entry is just the
@@ -168,21 +178,9 @@ def ngvalidate(newsgroups):
 
     # Check crosspost limit
     if len(goodng) > config.maxcrossposts:
-        logger.info('Message contains %d newsgroups, exceeding crosspost limit of %d. Rejecting.', len(goodng), config.maxcrossposts)
+        logger.warn('Message contains %d newsgroups, exceeding crosspost limit of %d. Rejecting.', len(goodng), config.maxcrossposts)
         sys.exit(0)
     return header
-
-def lineofgarbage(blks, blklen):
-    """Generate a text string containing blocks of random characters,
-    seperated by a whitespace character.  This can be useful for avoiding
-    MD5 hash collisions on PGP encrypted messages."""
-    chars = ascii_lowercase
-    garbage = ""
-    for block in range(blks):
-        for blkchar in range(blklen):
-            garbage = garbage + random.choice(chars)
-        garbage = garbage + " "
-    return garbage
 
 def middate():
     """Return a date in the format yyyymmdd.  This is useful for generating
@@ -190,6 +188,17 @@ def middate():
     utctime = datetime.datetime.utcnow()
     utcstamp = utctime.strftime("%Y%m%d%H%M%S")
     return utcstamp
+
+def ymdh():
+    """Return current year, month, day, hour."""
+    utctime = datetime.datetime.utcnow()
+    return utctime.year, utctime.month, utctime.day, utctime.hour
+
+def ymd():
+    """Return current year, month and date."""
+    utctime = datetime.datetime.utcnow()
+    return utctime.year, utctime.month, utctime.day
+
 
 def midrand(numchars):
     """Return a string of random chars, either uc, lc or numeric.  This
@@ -246,20 +255,20 @@ def msgparse(message):
     if options.helo:
         helo = blacklist(options.helo, config.poison_helo)
         if helo:
-            logger.info('Message received from blacklisted relay %s.  Rejecting it.', helo)
+            logger.warn('Message received from blacklisted relay %s.  Rejecting it.', helo)
             sys.exit(0)
 
     # Check for poison headers in the message.  Any of these will result in the
     # message being rejected.
     for header in config.poison_headers:
         if msg.has_key(header):
-            logger.info("Message contains a blacklisted %s header. Rejecting it.", header)
+            logger.warn("Message contains a blacklisted %s header. Rejecting it.", header)
             sys.exit(0)
 
     # Check for blacklisted From headers.
     fr = blacklist(msg['From'], config.poison_from)
     if fr:
-        logger.info("Rejecting due to blacklisted From \'%s\'", fr)
+        logger.warn("Rejecting due to blacklisted From \'%s\'", fr)
         sys.exit(0)
 
     # In priority order (highest first) look for the recipient details in these
@@ -286,13 +295,13 @@ def msgparse(message):
         logger.debug('Message has a Newsgroups header of %s', dest)
         if recipient.startswith('mail2news_nospam'):
             nospam = True
-            logger.debug('Message includes a nospam directive.  Will munge headers accordingly.')
+            logger.info('Message includes a nospam directive.  Will munge headers accordingly.')
     else:
-        logger.debug('No Newsgroups header, trying to parse recipient information.')
+        logger.info('No Newsgroups header, trying to parse recipient information.')
         (stamp, dest, nospam) = parse_recipient(recipient)
         # Check to see if the timestamp extracted from the recipient is valid.
         if not validate_stamp(stamp):
-            logger.info('No Newsgroups header or valid recipient.  Rejecting message.')
+            logger.warn('No Newsgroups header or valid recipient.  Rejecting message.')
             sys.exit(0)
 
     # Clean the newsgroups list by checking that each element seperated by ','
@@ -301,15 +310,15 @@ def msgparse(message):
 
     # If the message doesn't have a Date header, insert one.
     if not msg.has_key('Date'):
-        logger.debug("Message has no Date header. Inserting current timestamp.")
+        logger.info("Message has no Date header. Inserting current timestamp.")
         msg['Date'] = formatdate()
 
     # If the message doesn't have a From header, insert one.
     if not msg.has_key('From'):
-        logger.debug("Message has no From header. Inserting a null one.")
+        logger.info("Message has no From header. Inserting a null one.")
         msg['From'] = 'Unknown User <nobody@mixmin.net>'
     else:
-        logger.info("From: %s", msg['From'])
+        logger.debug("From: %s", msg['From'])
 
     # If we are in nospam mode, edit the From header and create an
     # Author-Supplied-Address header.
@@ -323,7 +332,7 @@ def msgparse(message):
 
     # If the message doesn't have a Subject header, insert one.
     if not msg.has_key('Subject'):
-        logger.debug("Message has no Subject header. Inserting a null one.")
+        logger.info("Message has no Subject header. Inserting a null one.")
         msg['Subject'] = 'None'
     else:
         logger.info("Subject: %s", msg['Subject'])
@@ -355,7 +364,7 @@ def msgparse(message):
     # Check for blacklisted Newsgroups
     ng = blacklist(msg['Newsgroups'], config.poison_newsgroups)
     if ng:
-        logger.info("Rejecting message due to blacklisted Newsgroup \'%s\' in distribution.", ng)
+        logger.warn("Rejecting message due to blacklisted Newsgroup \'%s\' in distribution.", ng)
         sys.exit(0)
     
     # Look for headers to remove from the message.
@@ -379,12 +388,7 @@ def msgparse(message):
         logger.info('This is a multipart message.  Bypassing payload parsing.')
     else:
         payload = msg.get_payload(decode=1)
-        filter_payload = body_parse(payload)
-        if msg.has_key('Newsgroups'):
-            if msg['Newsgroups'] == "alt.anonymous.messages":
-                logger.debug('Adding line of garbage to a.a.m destination.')
-                final_payload = filter_payload + "\n\n" + lineofgarbage(10,6)
-        msg.set_payload(final_payload)
+        msg.set_payload(body_parse(payload))
 
     return msg['Message-ID'], dest_server, msg.as_string()
 
@@ -454,7 +458,7 @@ def newssend(mid, nntphosts, content):
     recipient of the message.  We also do a crude size check."""
     size = len(content)
     if size > config.maxbytes:
-        logger.info('Message exceeds %d size limit. Rejecting.', config.maxbytes)
+        logger.warn('Message exceeds %d size limit. Rejecting.', config.maxbytes)
         sys.exit(0)
     logger.debug('Message is %d bytes', size)
     payload = StringIO.StringIO(content)
@@ -470,7 +474,7 @@ def newssend(mid, nntphosts, content):
                 s.ihave(mid, payload)
                 logger.info("%s successful IHAVE to %s." % (mid, host))
             except:
-                logger.info("IHAVE to server %s returned an error %s.", host, sys.exc_info()[1])
+                logger.warn("IHAVE to server %s returned an error %s.", host, sys.exc_info()[1])
         else:
             try:
                 s = NNTP(host, readermode=True)
