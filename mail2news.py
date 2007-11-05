@@ -461,8 +461,8 @@ def newssend(mid, nntphosts, content):
         logger.warn('Message exceeds %d size limit. Rejecting.', config.maxbytes)
         sys.exit(0)
     logger.debug('Message is %d bytes', size)
-    payload = StringIO.StringIO(content)
     for host in nntphosts:
+        payload = StringIO.StringIO(content)
         logger.debug("Attempting delivery to %s", host)
         if nntphosts[host] == 'ihave':
             try:
