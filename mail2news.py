@@ -28,7 +28,7 @@ import sys
 import logging
 import os.path
 from email.Utils import formatdate
-from nntplib import NNTP
+import nntplib
 from optparse import OptionParser
 
 def init_logging():
@@ -466,23 +466,32 @@ def newssend(mid, nntphosts, content):
         logger.debug("Attempting delivery to %s", host)
         if nntphosts[host] == 'ihave':
             try:
-                s = NNTP(host)
+                s = nntplib.NNTP(host)
+                logger.debug("IHAVE process connected to %s", host)
             except:
                 logger.error("Error during IHAVE connection to %s. %s",  host, sys.exc_info()[1])
                 continue
             try:
                 s.ihave(mid, payload)
                 logger.info("%s successful IHAVE to %s." % (mid, host))
+            except nntplib.NNTPTemporaryError:
+                logger.info("IHAVE to %s returned: %s", host, sys.exc_info()[1])
+            except nntplib.NNTPPermanentError:
+                logger.warn("IHAVE to %s returned a permanent error: %s", host, sys.exc_info()[1])
             except:
-                logger.warn("IHAVE to server %s returned an error %s.", host, sys.exc_info()[1])
+                logger.error("IHAVE to %s returned an unknown error: %s %s", host, sys.exc_info()[0], sys.exc_info()[1])
         else:
             try:
-                s = NNTP(host, readermode=True)
+                s = nntplib.NNTP(host, readermode=True)
             except:
                 logger.error("Error during POST connection to %s. %s",  host, sys.exc_info()[1])
                 continue
             try:
                 s.post(payload)
                 logger.info("%s successful POST to %s." % (mid, host))
+            except nntplib.NNTPTemporaryError:
+                logger.info("POST to %s returned: %s", host, sys.exc_info()[1])
+            except nntplib.NNTPPermanentError:
+                logger.warn("POST to %s returned a permanent error: %s", host, sys.exc_info()[1])
             except:
-                logger.warn("POST to server %s returned an error %s.", host, sys.exc_info()[1])
+                logger.error("POST to %s returned an unknown error: %s %s", host, sys.exc_info()[0], sys.exc_info()[1])
