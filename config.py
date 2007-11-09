@@ -25,7 +25,7 @@ path = 'mail2news.mixmin.net'
 nntphosts = {'localhost': 'ihave'}
 
 # The location of the logfile to write.  Can be overidden with --logfile switch.
-logfile = '/var/log/mail2news/log'
+logpath = '/var/log/mail2news/log'
 histfile = '/var/log/mail2news/hist'
 
 # The loglevel to use.  Can be overidden with --loglevel switch.

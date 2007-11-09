@@ -42,17 +42,16 @@ def init_logging():
         level = loglevels['info']
     global logger
     logger = logging.getLogger('m2n')
+    logpath = options.logpath.rstrip("/")
+    logfile = "%s-%s-%s" % ymd()
+    filename = "%s/%s" % (logpath, logfile)
     try:
-        if options.logfile == 'rotate':
-            filename = "/var/log/mail2news/%s-%s-%s-%s" % ymd()
-            if not os.path.isfile(filename):
-                lf = open(filename, 'w')
-                lf.close()
-                os.chmod(filename, 0644)
-            logger.debug('Using rotational logfile %s', filename)
+        if not os.path.isfile(filename):
+            lf = open(filename, 'w')
+            lf.close()
+            os.chmod(filename, 0644)
+            logger.debug('Created new logfile %s', filename)
             hdlr = logging.FileHandler(filename)
-        else:
-            hdlr = logging.FileHandler(options.logfile)
     except IOError:
         print "Error: Unable to initialize logger.  Check file permissions?"
         sys.exit(1)
@@ -66,9 +65,9 @@ def init_parser():
     to do this after logging is initialised, but we need options in order to
     do that, so the egg must come before the chicken!"""
     parser = OptionParser()
-    parser.add_option("-l", "--logfile", action = "store", type = "string",
-                      dest = "logfile", default = config.logfile,
-                      help = "Location of the log file.")
+    parser.add_option("-l", "--logpath", action = "store", type = "string",
+                      dest = "logpath", default = config.logpath,
+                      help = "Location of the log files.")
     parser.add_option("--histfile", action = "store", type = "string",
                       dest = "histfile", default = config.histfile,
                       help = "Location of history file")
