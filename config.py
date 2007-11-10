@@ -29,8 +29,8 @@ timeout = 60
 nntphosts = {'localhost': 'ihave'}
 
 # The location of the logfile to write.  Can be overidden with --logfile switch.
-logpath = '/var/log/mail2news/log'
-histfile = '/var/log/mail2news/hist'
+logpath = '/crypt/home/crooks/mail2news/log'
+histpath = '/crypt/home/crooks/mail2news/history'
 
 # The loglevel to use.  Can be overidden with --loglevel switch.
 loglevel = 'info'

@@ -52,7 +52,7 @@ def init_logging():
             lf.close()
             os.chmod(filename, 0644)
             logger.debug('Created new logfile %s', filename)
-            hdlr = logging.FileHandler(filename)
+        hdlr = logging.FileHandler(filename)
     except IOError:
         print "Error: Unable to initialize logger.  Check file permissions?"
         sys.exit(1)
@@ -69,8 +69,8 @@ def init_parser():
     parser.add_option("-l", "--logpath", action = "store", type = "string",
                       dest = "logpath", default = config.logpath,
                       help = "Location of the log files.")
-    parser.add_option("--histfile", action = "store", type = "string",
-                      dest = "histfile", default = config.histfile,
+    parser.add_option("--histpath", action = "store", type = "string",
+                      dest = "histpath", default = config.histpath,
                       help = "Location of history file")
     parser.add_option("--loglevel", action = "store", type = "string",
                       dest = "loglevel", default = config.loglevel,
@@ -243,7 +243,18 @@ def msgparse(message):
     # we have a means to see why messages succeeded or failed.  This is very
     # useful during testing, but can be remarked out for production.
     if not options.nohist:
-        hist = open(options.histfile, 'a')
+        histpath = options.histpath.rstrip("/")
+        histfile = "%s-%s-%s" % ymd()
+        filename = "%s/%s" % (histpath, histfile)
+        try:
+            if not os.path.isfile(filename):
+                hf = open(filename, 'w')
+                hf.close()
+                os.chmod(filename, 0644)
+                logger.debug('Created new history file: %s', filename)
+        except IOError:
+            logger.error("Unable to initialize history file.  Check file permissions?")
+        hist = open(filename, 'a')
         hist.write(message)
         hist.write('\n')
         hist.close()
