@@ -329,7 +329,7 @@ def msgparse(message):
         logger.info("Message has no From header. Inserting a null one.")
         msg['From'] = 'Unknown User <nobody@mixmin.net>'
     else:
-        logger.debug("From: %s", msg['From'])
+        logger.info("From: %s", msg['From'])
 
     # If we are in nospam mode, edit the From header and create an
     # Author-Supplied-Address header.
