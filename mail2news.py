@@ -150,6 +150,7 @@ def validate_stamp(stamp):
 def ngvalidate(newsgroups):
     """Weed out rogue entries in the Newsgroups header.  This is more polite
     than feeding junk to the News servers."""
+    newsgroups = newsgroups.rstrip(",")
     groups = newsgroups.split(',')
     goodng = [] # This will become a list of good newsgroups
 
