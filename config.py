@@ -21,6 +21,10 @@
 # of that too.
 path = 'mail2news.mixmin.net'
 
+# Socket timeout in seconds.  This prevents the posting process from hanging
+# forever if an NNTP server is not reachable.
+timeout = 60
+
 # The hosts to send the message to and the delivery method (ihave or post).
 nntphosts = {'localhost': 'ihave'}
 

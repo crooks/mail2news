@@ -27,6 +27,7 @@ import StringIO
 import sys
 import logging
 import os.path
+import socket
 from email.Utils import formatdate
 import nntplib
 from optparse import OptionParser
@@ -460,6 +461,9 @@ def newssend(mid, nntphosts, content):
         logger.warn('Message exceeds %d size limit. Rejecting.', config.maxbytes)
         sys.exit(0)
     logger.debug('Message is %d bytes', size)
+    # Socket timeout prevents processes hanging forever if an NNTP server is
+    # unreachable.
+    socket.setdefaulttimeout(config.timeout)
     for host in nntphosts:
         payload = StringIO.StringIO(content)
         logger.debug("Attempting delivery to %s", host)
