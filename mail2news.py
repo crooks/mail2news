@@ -181,7 +181,26 @@ def ngvalidate(newsgroups):
     if len(goodng) > config.maxcrossposts:
         logger.warn('Message contains %d newsgroups, exceeding crosspost limit of %d. Rejecting.', len(goodng), config.maxcrossposts)
         sys.exit(0)
-    return header
+    # We return a list of good newsgroups, and a full comma-seperated header.
+    return goodng, header
+
+def extract_posting_hosts(allhosts, groups):
+    """We expect to receive a dict of nntphosts and a list of groups. If each
+    group in the list matches a regex, we include that host in a new dict
+    called goodhosts.  This is returned in the required format for passing to
+    our actual posting routine."""
+    goodhosts = {}
+    for server in allhosts:
+        pattern, method = allhosts[server]
+        count = 0
+        for group in groups:
+            match = re.match(pattern, group)
+            if match:
+                logger.debug("Selecting host %s as a feed recipient", server)
+                count += 1
+        if count == len(groups):
+            goodhosts[server] = method
+    return goodhosts
 
 def middate():
     """Return a date in the format yyyymmdd.  This is useful for generating
@@ -318,7 +337,7 @@ def msgparse(message):
 
     # Clean the newsgroups list by checking that each element seperated by ','
     # are in an accepted newsgroup format.
-    msg['Newsgroups'] = ngvalidate(dest)
+    groups, msg['Newsgroups'] = ngvalidate(dest)
 
     # If the message doesn't have a Date header, insert one.
     if not msg.has_key('Date'):
@@ -356,7 +375,6 @@ def msgparse(message):
     # If the message has an X-Newsserver header, use the specified posting host
     # instead of the default servers.
     # TODO probably should do some error checking of the supplied hostname:port
-    dest_server = config.nntphosts
     if msg.has_key('X-Newsserver'):
         logger.info("Message directs posting to %s. Adding Comment header.", msg['X-Newsserver'])
         comment1 = "A user of this Mail2News Gateway has issued a directive to force posting through %s." % msg['X-Newsserver']
@@ -372,6 +390,11 @@ def msgparse(message):
                     logger.debug("Assigned header: %s", comments_header)
                     break
         dest_server = {msg['X-Newsserver']: 'post'}
+    else:
+        # If we don't have an X-Newserver header, we use our configured nntphosts
+        # dictionary.
+        dest_server = extract_posting_hosts(config.nntphosts, groups)
+
 
     # Check for blacklisted Newsgroups
     ng = blacklist(msg['Newsgroups'], config.poison_newsgroups)

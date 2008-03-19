@@ -26,11 +26,15 @@ path = 'mail2news.mixmin.net'
 timeout = 60
 
 # The hosts to send the message to and the delivery method (ihave or post).
-nntphosts = {'localhost': 'ihave'}
+nntphosts = {}
+nntphosts['localhost'] = ['.*', 'ihave']
+nntphosts['news-in.mixmin.net'] = ['^alt\.anonymous\.messages|^alt\.privacy\.anon-server|^local\.', 'ihave']
+nntphosts['news-in.glorb.com'] = ['^alt\.anonymous\.messages|^alt\.privacy\.anon-server', 'ihave']
+nntphosts['newsin.alt.net'] = ['^alt\.anonymous\.messages|^alt\.privacy\.anon-server', 'ihave']
 
 # The location of the logfile to write.  Can be overidden with --logfile switch.
-logpath = '/crypt/home/crooks/mail2news/log'
-histpath = '/crypt/home/crooks/mail2news/history'
+logpath = '/home/mail2news/python/log'
+histpath = '/home/mail2news/python/history'
 
 # The loglevel to use.  Can be overidden with --loglevel switch.
 loglevel = 'info'
@@ -58,7 +62,7 @@ poison_helo = []
 maxcrossposts = 3
 
 # Maximum number of bytes in a message
-maxbytes = 100000
+maxbytes = 200000
 
 # Reject messages containing this string in the Newsgroups header.
 # Note: This doesn't have to be an entire newsgroup, just a string match.
