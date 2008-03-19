@@ -192,14 +192,20 @@ def extract_posting_hosts(allhosts, groups):
     our actual posting routine."""
     goodhosts = {}
     for server in allhosts:
-        pattern, method = allhosts[server]
+        if len(allhosts[server]) == 2:
+            pattern, method = allhosts[server]
+        else:
+            logger.warn("Invalid configuration for server %s", server)
+            continue
         count = 0
         for group in groups:
-            match = re.match(pattern, group)
+            match = re.search(pattern, group)
             if match:
-                logger.debug("Selecting host %s as a feed recipient", server)
                 count += 1
+            else:
+                logger.debug("Host %s invalid for group %s", server, group)
         if count == len(groups):
+            logger.debug("Selecting host %s as a feed recipient with method %s", server, method)
             goodhosts[server] = method
     return goodhosts
 
