@@ -190,21 +190,30 @@ def extract_posting_hosts(allhosts, groups):
     group in the list matches a regex, we include that host in a new dict
     called goodhosts.  This is returned in the required format for passing to
     our actual posting routine."""
+    # These are the outgoing feed methods we understand.
+    good_methods = ["post", "ihave"]
     goodhosts = {}
     for server in allhosts:
+        # Reject a given server if we didn't get passed the two parameters
+        # we require:- Regex Pattern and Posting Method.
         if len(allhosts[server]) == 2:
             pattern, method = allhosts[server]
         else:
             logger.warn("Invalid configuration for server %s", server)
             continue
-        count = 0
+        # Validate the feed method we are configured to use.
+        if not method in good_methods:
+            logger.warn("Unknown feed method for server %s", server)
+            continue
+        select = True
         for group in groups:
             match = re.search(pattern, group)
-            if match:
-                count += 1
-            else:
-                logger.debug("Host %s invalid for group %s", server, group)
-        if count == len(groups):
+            if not match:
+                # As we need all groups to match this pattern, there's no
+                # point carrying on trying once one has failed.
+                select = False
+                break
+        if select:
             logger.debug("Selecting host %s as a feed recipient with method %s", server, method)
             goodhosts[server] = method
     return goodhosts
