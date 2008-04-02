@@ -166,7 +166,7 @@ def ngvalidate(newsgroups):
         else:
             logger.info("%s is not a validated newsgroup, ignoring.", ng)
 
-    # Not point proceeding if there are no valid Newsgroups.
+    # No point proceeding if there are no valid Newsgroups.
     if len(goodng) < 1:
         logger.warn("Message has no valid newsgroups.  Rejecting it.")
         sys.exit(0)
@@ -277,7 +277,7 @@ def msgparse(message):
 
     # Before anything else, lets write the message to a history file so that
     # we have a means to see why messages succeeded or failed.  This is very
-    # useful during testing, but can be remarked out for production.
+    # useful during testing, but can be run with a nohist switch in prod.
     if not options.nohist:
         histpath = options.histpath.rstrip("/")
         histfile = "%s-%s-%s" % ymd()
@@ -459,11 +459,6 @@ def body_parse(body):
         body = body.replace(string, "")
     if oldbody <> body:
         logger.info('Payload has been modified due to matching remove strings.')
-        oldbody = body
-    body = body.replace('- -----BEGIN PGP', '-----BEGIN PGP')
-    body = body.replace('- -----END PGP', '-----END PGP')
-    if oldbody <> body:
-        logger.info('Payload has been modified to unescape PGP delimiters.')
     return body
 
 def find_recipient(recipients):
