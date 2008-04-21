@@ -125,8 +125,10 @@ def validate_stamp(stamp):
     """Validate that the timestamp decoded from the recipient details is both
     a valid timestamp and falls within acceptable time boundaries."""
     # Get timestamps for hours before and ahead of current UTC
-    beforetime = datetime.datetime.utcnow() - datetime.timedelta(hours=48)
-    aftertime = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+    beforetime = datetime.datetime.utcnow() - \
+      datetime.timedelta(hours=config.hours_past)
+    aftertime = datetime.datetime.utcnow() + \
+      datetime.timedelta(hours=config.hours_future)
     # Extract elements of the date stamp.
     year = int(stamp[0:4])
     month = int(stamp[4:6])

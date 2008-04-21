@@ -40,7 +40,7 @@ histpath = '/home/mail2news/python/history'
 loglevel = 'info'
 
 # Abuse contact to insert in X-Abuse-Contact.
-abuse_contact = 'abuse@bananasplit.info'
+abuse_contact = 'abuse@mixmin.net'
 
 # Headers to strip from the message prior to posting.
 bin_headers = ['To', 'Return-Path', 'Received', 'X-Original-To', 'Delivered-To',
@@ -57,6 +57,11 @@ bin_body = ['-----BEGIN TYPE III ANONYMOUS MESSAGE-----\nMessage-type: plaintext
 
 # Reject messages received from HELO's matching these strings.
 poison_helo = []
+
+# When validating a message sent to mail2news-yyyymmdd, how many hours in the
+# past and future are considered valid.
+hours_past = 48
+hours_future = 24
 
 # The maximum number of valid newsgroups that will be accepted in a crossposted message.
 maxcrossposts = 3
