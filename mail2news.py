@@ -104,18 +104,21 @@ def parse_recipient(user):
         user = domainchk.group(1)
     userfmt = re.match('(mail2news|mail2news_nospam)\-([0-9]{8})\-(.*)', user)
     if userfmt:
+        recipient = userfmt.group(1)
+        timestamp = userfmt.group(2)
+        newsgroups = userfmt.group(3)
+        # Replace = seperator with commas
+        newsgroups = newsgroups.replace('=', ',')
         logger.info('Message has a correctly formatted recipient. Validating it.')
+
         # Check to see if the header includes a 'nospam' instruction.
         nospam = False
-        if userfmt.group(1) == 'mail2news_nospam':
+        if recipient == 'mail2news_nospam':
             logger.info('Message includes a nospam directive.  Will munge headers accordingly.')
             nospam = True
         # Extract the Newsgroups components and replace the '=' delimiters
         # with ','.
-        ngs = userfmt.group(3)
-        newsgroups = ngs.replace('=', ',')
-        stamp = userfmt.group(2)
-        return stamp, newsgroups, nospam
+        return timestamp, newsgroups, nospam
     else:
         logger.warn('Badly formatted recipient.  Rejecting message.')
         sys.exit(0)
