@@ -104,20 +104,18 @@ def parse_recipient(user):
         user = domainchk.group(1)
     userfmt = re.match('(mail2news|mail2news_nospam)\-([0-9]{8})\-(.*)', user)
     if userfmt:
+        logger.info('Message has a correctly formatted recipient. Validating it.')
         recipient = userfmt.group(1)
         timestamp = userfmt.group(2)
         newsgroups = userfmt.group(3)
         # Replace = seperator with commas
         newsgroups = newsgroups.replace('=', ',')
-        logger.info('Message has a correctly formatted recipient. Validating it.')
 
         # Check to see if the header includes a 'nospam' instruction.
         nospam = False
         if recipient == 'mail2news_nospam':
             logger.info('Message includes a nospam directive.  Will munge headers accordingly.')
             nospam = True
-        # Extract the Newsgroups components and replace the '=' delimiters
-        # with ','.
         return timestamp, newsgroups, nospam
     else:
         logger.warn('Badly formatted recipient.  Rejecting message.')
@@ -137,7 +135,7 @@ def validate_stamp(stamp):
     # digits.  If the Try succeeds, at least it is a parsable date.
     try:
         nowtime = datetime.datetime(year,month,day)
-    except:
+    except ValueError:
         logger.warn('Malformed date element. Rejecting message.')
         sys.exit(0)
 
