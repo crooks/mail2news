@@ -67,23 +67,23 @@ def init_parser():
     do that, so the egg must come before the chicken!"""
     parser = OptionParser()
     parser.add_option("-l", "--logpath", action = "store", type = "string",
-                      dest = "logpath", default = config.logpath,
-                      help = "Location of the log files.")
+                    dest = "logpath", default = config.logpath,
+                    help = "Location of the log files.")
     parser.add_option("--histpath", action = "store", type = "string",
-                      dest = "histpath", default = config.histpath,
-                      help = "Location of history file")
+                    dest = "histpath", default = config.histpath,
+                    help = "Location of history file")
     parser.add_option("--loglevel", action = "store", type = "string",
-                      dest = "loglevel", default = config.loglevel,
-                      help = "Logging level, (error, warn, notice, info, debug)")
+                    dest = "loglevel", default = config.loglevel,
+                    help = "Logging level, (error, warn, notice, info, debug)")
     parser.add_option("-u", "--user", action = "store", type = "string",
-                      dest = "user",
-                      help = "Recipient of the message.")
+                    dest = "user",
+                    help = "Recipient of the message.")
     parser.add_option("-n", "--newsgroups", action = "store", type = "string",
-                      dest = "newsgroups",
-                      help = "Newsgroups to post the message in.")
+                    dest = "newsgroups",
+                    help = "Newsgroups to post the message in.")
     parser.add_option("--path", action = "store", type = "string",
-                      dest = "path", default = config.path,
-                      help = "Entry to use in Path header")
+                    dest = "path", default = config.path,
+                    help = "Entry to use in Path header")
     parser.add_option("--helo", action = "store", type = "string",
                       dest = "helo",
                       help = "HELO/EHLO from sender.")
@@ -92,6 +92,13 @@ def init_parser():
                       help = "Don't store messages in a history file")
     global options
     (options, args) = parser.parse_args()
+
+def long_string(loglist):
+    """Concatenate strings and return a single long string."""
+    logmessage = ""
+    for line in loglist:
+        logmessage = logmessage + line
+    return logmessage
 
 def parse_recipient(user):
     """Check to see if the recipient of the email is in the format
@@ -104,7 +111,8 @@ def parse_recipient(user):
         user = domainchk.group(1)
     userfmt = re.match('(mail2news|mail2news_nospam)\-([0-9]{8})\-(.*)', user)
     if userfmt:
-        logger.info('Message has a correctly formatted recipient. Validating it.')
+        logger.info(long_string(['Message has a correctly formatted ',
+                                 'recipient. Validating it.']))
         recipient = userfmt.group(1)
         timestamp = userfmt.group(2)
         newsgroups = userfmt.group(3)
@@ -114,7 +122,8 @@ def parse_recipient(user):
         # Check to see if the header includes a 'nospam' instruction.
         nospam = False
         if recipient == 'mail2news_nospam':
-            logger.info('Message includes a nospam directive.  Will munge headers accordingly.')
+            logger.info(long_string(['Message includes a nospam directive.  ',
+                                     'Will munge headers accordingly.']))
             nospam = True
         return timestamp, newsgroups, nospam
     else:
@@ -147,7 +156,8 @@ def validate_stamp(stamp):
         logger.info('Timesstamp (%s) is valid and within bounds.', stamp)
         return True
     else:
-        logger.warn('Timestamp (%s) is out of bounds.  Rejecting message.', stamp)
+        logger.warn(long_string(['Timestamp (%s) is out of bounds' % stamp,
+                                 'Rejecting message.']))
         sys.exit(0)
 
 def ngvalidate(newsgroups):
@@ -163,7 +173,8 @@ def ngvalidate(newsgroups):
         fmtchk = re.match('[a-z]{1,9}(\.[0-9a-z-+_]+)+$', ng)
         if fmtchk:
             if ng in goodng:
-                logger.info("Duplicate newsgroup entry of %s.  Dropping one.", ng)
+                logger.info(long_string(['Duplicate newsgroup entry of ',
+                                         '%s. Dropping one.' % ng]))
             else:
                 goodng.append(ng)
         else:
@@ -174,8 +185,8 @@ def ngvalidate(newsgroups):
         logger.warn("Message has no valid newsgroups.  Rejecting it.")
         sys.exit(0)
 
-    # Create a valid entry for a Newsgroups header.  The first entry is just the
-    # group name.  Subsequent ones are prefixed with a comma.
+    # Create a valid entry for a Newsgroups header.  The first entry is just
+    # the group name.  Subsequent ones are prefixed with a comma.
     header = goodng[0]
     for ng in range(1, len(goodng)):
         header = header + ',' + goodng[ng]
@@ -183,7 +194,9 @@ def ngvalidate(newsgroups):
 
     # Check crosspost limit
     if len(goodng) > config.maxcrossposts:
-        logger.warn('Message contains %d newsgroups, exceeding crosspost limit of %d. Rejecting.', len(goodng), config.maxcrossposts)
+        logger.warn(long_string(['Message contains %d ' % len(goodng),
+                                 'newsgroups, exceeding crosspost limit of ',
+                                 '%d. Rejecting' % config.maxcrossposts]))
         sys.exit(0)
     # We return a list of good newsgroups, and a full comma-seperated header.
     return goodng, header
@@ -217,7 +230,8 @@ def extract_posting_hosts(allhosts, groups):
                 select = False
                 break
         if select:
-            logger.debug("Selecting host %s as a feed recipient with method %s", server, method)
+            logger.debug(long_string(['Selecting host %s as a feed ' % server,
+                                      'recipient with method %s' % method]))
             goodhosts[server] = method
     return goodhosts
 
@@ -274,7 +288,8 @@ def msgparse(message):
     # valid ID's to have reached the gateway at all.
     if not msg.has_key('Message-ID'):
         msg['Message-ID'] = messageid()
-        logger.warn('Processing message with no Message-ID.  Assigning %s.' % msg['Message-ID'])
+        logger.warn(long_string(['Processing message with no Message-ID.  ',
+                                 'Assigning %s.' % msg['Message-ID']]))
     else:
         logger.info('Processing message %s' % msg['Message-ID'])
 
@@ -292,7 +307,8 @@ def msgparse(message):
                 os.chmod(filename, 0644)
                 logger.debug('Created new history file: %s', filename)
         except IOError:
-            logger.error("Unable to initialize history file.  Check file permissions?")
+            logger.error(long_string(['Unable to initialize history file.  ',
+                                      'Check file permissions?']))
         hist = open(filename, 'a')
         hist.write(message)
         hist.write('\n')
@@ -305,14 +321,16 @@ def msgparse(message):
     if options.helo:
         helo = blacklist(options.helo, config.poison_helo)
         if helo:
-            logger.warn('Message received from blacklisted relay %s.  Rejecting it.', helo)
+            logger.warn(long_string(['Message received from blacklisted relay ',
+                                     '%s.  Rejecting it.' % helo]))
             sys.exit(0)
 
     # Check for poison headers in the message.  Any of these will result in the
     # message being rejected.
     for header in config.poison_headers:
         if msg.has_key(header):
-            logger.warn("Message contains a blacklisted %s header. Rejecting it.", header)
+            logger.warn(long_string(['Message contains a blacklisted ',
+                                     '%s header. Rejecting it.' % header]))
             sys.exit(0)
 
     # Check for blacklisted From headers.
@@ -337,7 +355,8 @@ def msgparse(message):
         dest = options.newsgroups
         logger.debug("Newsgroups passed as arguement: %s", dest)
         if msg.has_key('Newsgroups'):
-            logger.info("Newsgroups header overridden by --newsgroups arguement")
+            logger.info(long_string(['Newsgroups header overridden by ',
+                                     '--newsgroups arguement']))
 
     elif msg.has_key('Newsgroups'):
         dest = msg['Newsgroups']
@@ -345,13 +364,16 @@ def msgparse(message):
         logger.debug('Message has a Newsgroups header of %s', dest)
         if recipient.startswith('mail2news_nospam'):
             nospam = True
-            logger.info('Message includes a nospam directive.  Will munge headers accordingly.')
+            logger.info(long_string(['Message includes a nospam directive. ',
+                                     'Will munge headers accoringly.']))
     else:
-        logger.info('No Newsgroups header, trying to parse recipient information.')
+        logger.info(long_string(['No Newsgroups header, trying to parse ',
+                                 'recipient information']))
         (stamp, dest, nospam) = parse_recipient(recipient)
         # Check to see if the timestamp extracted from the recipient is valid.
         if not validate_stamp(stamp):
-            logger.warn('No Newsgroups header or valid recipient.  Rejecting message.')
+            logger.warn(long_string(['No Newsgroups header or valid ',
+                                     'recipient. Rejecting message.']))
             sys.exit(0)
 
     # Clean the newsgroups list by checking that each element seperated by ','
@@ -395,12 +417,15 @@ def msgparse(message):
     # instead of the default servers.
     # TODO probably should do some error checking of the supplied hostname:port
     if msg.has_key('X-Newsserver'):
-        logger.info("Message directs posting to %s. Adding Comment header.", msg['X-Newsserver'])
-        comment1 = "A user of this Mail2News Gateway has issued a directive to force posting through %s." % msg['X-Newsserver']
-        comment2 = " If this is undesirable, please contact the administrator at the supplied abuse address."
+        logger.info(long_string(['Message directs posting to ',
+                                 msg['X-Newsserver'],
+                                 '. Adding comment headrer.']))
+        msg['Comments'] = long_string(['A user of this Mail2News Gateway ',
+            'issued a directive to force posting through ',
+            '%s. If this is undesirable, please ' % msg['X-Newsserver'],
+            'contact the administrator at the supplied abuse address.'])
         if not msg.has_key('Comments'):
             logger.debug("Assigned header: Comments")
-            msg['Comments'] = comment1 + comment2
         else:
             for free_comment in range(1,99):
                 comments_header = 'Comments' + str(free_comment)
@@ -410,15 +435,16 @@ def msgparse(message):
                     break
         dest_server = {msg['X-Newsserver']: 'post'}
     else:
-        # If we don't have an X-Newserver header, we use our configured nntphosts
-        # dictionary.
+        # If we don't have an X-Newserver header, we use our configured
+        # nntphosts dictionary.
         dest_server = extract_posting_hosts(config.nntphosts, groups)
 
 
     # Check for blacklisted Newsgroups
     ng = blacklist(msg['Newsgroups'], config.poison_newsgroups)
     if ng:
-        logger.warn("Rejecting message due to blacklisted Newsgroup \'%s\' in distribution.", ng)
+        logger.warn(long_string(['Rejecting message due to blacklisted ',
+                                 'Newsgroup "%s" in distribution.' % ng]))
         sys.exit(0)
     
     # Look for headers to remove from the message.
@@ -429,12 +455,15 @@ def msgparse(message):
     try:
         msg['Path'] = options.path
     except:
-        logger.error('Cannot assign domain to Path header. We must have one to proceed.')
+        logger.error(long_string(['Cannot assign domain to Path header. ',
+                                  'Unable to continue processing.']))
         sys.exit(1)
     try:
         msg['X-Abuse-Contact'] = config.abuse_contact
     except:
-        logger.warn("We don't appear to have an abuse contact address.  This will make recipients of abuse feel sad.")
+        logger.warn(long_string(["We don't appear to have an abuse contact ",
+                                 "address. Without one, recipients of abuse ",
+                                 "will be unhappy."]))
     
     # The following section parses the message payload.  Remove
     # them to pass the payload unchanged.
@@ -507,7 +536,8 @@ def newssend(mid, nntphosts, content):
     recipient of the message.  We also do a crude size check."""
     size = len(content)
     if size > config.maxbytes:
-        logger.warn('Message exceeds %d size limit. Rejecting.', config.maxbytes)
+        logger.warn(long_string(['Message exceeds %d ' % config.maxbytes,
+                                 'size limit. Rejecting.']))
         sys.exit(0)
     logger.debug('Message is %d bytes', size)
     # Socket timeout prevents processes hanging forever if an NNTP server is
@@ -521,7 +551,8 @@ def newssend(mid, nntphosts, content):
                 s = nntplib.NNTP(host)
                 logger.debug("IHAVE process connected to %s", host)
             except:
-                logger.error("Error during IHAVE connection to %s. %s",  host, sys.exc_info()[1])
+                logger.error(long_string(['Error during IHAVE conection to ',
+                                          host, '. ', sys.exc_info()[1]]))
                 continue
             try:
                 s.ihave(mid, payload)
@@ -529,14 +560,17 @@ def newssend(mid, nntphosts, content):
             except nntplib.NNTPTemporaryError:
                 logger.info("IHAVE to %s returned: %s", host, sys.exc_info()[1])
             except nntplib.NNTPPermanentError:
-                logger.warn("IHAVE to %s returned a permanent error: %s", host, sys.exc_info()[1])
+                logger.warn(long_string(['IHAVE to %s returned a ' % host,
+                            'permanent error: %s' % sys.exc_info()[1]]))
             except:
-                logger.error("IHAVE to %s returned an unknown error: %s %s", host, sys.exc_info()[0], sys.exc_info()[1])
+                logger.warn(long_string(['IHAVE to %s returned an ' % host,
+                                'unknown error: %s' % sys.exc_info()[1]]))
         else:
             try:
                 s = nntplib.NNTP(host, readermode=True)
             except:
-                logger.error("Error during POST connection to %s. %s",  host, sys.exc_info()[1])
+                logger.error(long_string(['Error during POST connection to ',
+                                           host, '. ', sys.exc_info()[1]]))
                 continue
             try:
                 s.post(payload)
@@ -544,6 +578,8 @@ def newssend(mid, nntphosts, content):
             except nntplib.NNTPTemporaryError:
                 logger.info("POST to %s returned: %s", host, sys.exc_info()[1])
             except nntplib.NNTPPermanentError:
-                logger.warn("POST to %s returned a permanent error: %s", host, sys.exc_info()[1])
+                logger.warn(long_string(['POST to %s returned a ' % host,
+                            'permanent error: %s' % sys.exc_info()[1]]))
             except:
-                logger.error("POST to %s returned an unknown error: %s %s", host, sys.exc_info()[0], sys.exc_info()[1])
+                logger.warn(long_string(['POST to %s returned an ' % host,
+                                'unknown error: %s' % sys.exc_info()[1]]))
