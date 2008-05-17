@@ -420,17 +420,18 @@ def msgparse(message):
         logger.info(long_string(['Message directs posting to ',
                                  msg['X-Newsserver'],
                                  '. Adding comment headrer.']))
-        msg['Comments'] = long_string(['A user of this Mail2News Gateway ',
+        comment_text = long_string(['A user of this Mail2News Gateway ',
             'issued a directive to force posting through ',
             '%s. If this is undesirable, please ' % msg['X-Newsserver'],
             'contact the administrator at the supplied abuse address.'])
         if not msg.has_key('Comments'):
             logger.debug("Assigned header: Comments")
+	    msg['Comments'] = comment_text
         else:
             for free_comment in range(1,99):
                 comments_header = 'Comments' + str(free_comment)
                 if not msg.has_key(comments_header):
-                    msg[comments_header] = comment1 + comment2
+                    msg[comments_header] = comment_text
                     logger.debug("Assigned header: %s", comments_header)
                     break
         dest_server = {msg['X-Newsserver']: 'post'}
