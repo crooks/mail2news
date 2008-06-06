@@ -170,7 +170,7 @@ def ngvalidate(newsgroups):
     # Check each group is correctly formatted.  Drop those that aren't.
     for ng in groups:
         ng = ng.strip() # Strip whitespaces
-        fmtchk = re.match('[a-z]{1,9}(\.[0-9a-z-+_]+)+$', ng)
+        fmtchk = re.match('[a-z]+(\.[0-9a-z-+_]+)+$', ng)
         if fmtchk:
             if ng in goodng:
                 logger.info(long_string(['Duplicate newsgroup entry of ',
