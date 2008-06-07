@@ -419,7 +419,7 @@ def msgparse(message):
     if msg.has_key('X-Newsserver'):
         logger.info(long_string(['Message directs posting to ',
                                  msg['X-Newsserver'],
-                                 '. Adding comment headrer.']))
+                                 '. Adding comment header.']))
         comment_text = long_string(['A user of this Mail2News Gateway ',
             'issued a directive to force posting through ',
             '%s. If this is undesirable, please ' % msg['X-Newsserver'],
