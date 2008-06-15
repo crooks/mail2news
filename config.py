@@ -4,7 +4,7 @@
 #
 # m2n.py -- This is the config file for the mail2news script
 #
-# Copyright (C) 2006 Steve Crook <steve@mixmin.org>
+# Copyright (C) 2008 Steve Crook <steve@mixmin.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by the

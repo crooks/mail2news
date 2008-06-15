@@ -6,7 +6,7 @@
 # with a Newsgroups header or delivered to a recipient in the format
 # mail2news-yyyymmdd-news.group@domain.com
 #
-# Copyright (C) 2006 Steve Crook <steve@mixmin.org>
+# Copyright (C) 2008 Steve Crook <steve@mixmin.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by the
