@@ -28,9 +28,7 @@ timeout = 60
 # The hosts to send the message to and the delivery method (ihave or post).
 nntphosts = {}
 nntphosts['localhost'] = ['.*', 'ihave']
-nntphosts['news-in.mixmin.net'] = ['^alt\.anonymous\.messages|^alt\.privacy\.anon-server|^local\.', 'ihave']
-nntphosts['news-in.glorb.com'] = ['^alt\.anonymous\.messages|^alt\.privacy\.anon-server', 'ihave']
-nntphosts['newsin.alt.net'] = ['^alt\.anonymous\.messages|^alt\.privacy\.anon-server', 'ihave']
+nntphosts['news-in.mixmin.net'] = ['^alt\.anonymous\.messages|^alt\.privacy\.anon-server|^local\.|\.test', 'ihave']
 
 # The location of the logfile to write.  Can be overidden with --logfile switch.
 logpath = '/home/mail2news/python/log'
