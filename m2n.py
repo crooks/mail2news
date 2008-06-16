@@ -26,7 +26,6 @@ def main():
     mail2news.init_logging()
     print "Type message here.  Finish with Ctrl-D."
     (mid, dest_server, payload) = mail2news.msgparse(sys.stdin.read())
-    print payload
     mail2news.newssend(mid, dest_server, payload)
 
 # Call main function.
