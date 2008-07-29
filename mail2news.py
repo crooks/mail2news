@@ -85,11 +85,14 @@ def init_parser():
                     dest = "path", default = config.path,
                     help = "Entry to use in Path header")
     parser.add_option("--helo", action = "store", type = "string",
-                      dest = "helo",
-                      help = "HELO/EHLO from sender.")
+                    dest = "helo",
+                    help = "HELO/EHLO from sender.")
     parser.add_option("--nohist", action = "store_true", dest = "nohist",
-                      default = False,
-                      help = "Don't store messages in a history file")
+                    default = False,
+                    help = "Don't store messages in a history file")
+    parser.add_option("--subject", action = "store", type = "string",
+                    dest = "subject",
+                    help = "Override the message subject")
     global options
     (options, args) = parser.parse_args()
 
@@ -399,7 +402,10 @@ def msgparse(message):
             msg['From'] = name + '<Use-Author-Supplied-Address-Header@[127.1]>'
 
     # If the message doesn't have a Subject header, insert one.
-    if not msg.has_key('Subject'):
+    if options.subject:
+    	logger.info("(Parameter) Subject: %s", msg['Subject'])
+	msg['Subject'] = options.subject
+    elif not msg.has_key('Subject'):
         logger.info("Message has no Subject header. Inserting a null one.")
         msg['Subject'] = 'None'
     else:
