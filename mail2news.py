@@ -44,7 +44,7 @@ def init_logging():
     global logger
     logger = logging.getLogger('m2n')
     logpath = options.logpath.rstrip("/")
-    logfile = "%s-%s-%s" % ymd()
+    logfile = datestring()
     filename = "%s/%s" % (logpath, logfile)
     try:
         if not os.path.isfile(filename):
@@ -242,16 +242,12 @@ def middate():
     utcstamp = utctime.strftime("%Y%m%d%H%M%S")
     return utcstamp
 
-def ymdh():
-    """Return current year, month, day, hour."""
+def datestring():
+    """As per middate but only return the date element of UTC.  This is used
+    for generating log and history files."""
     utctime = datetime.datetime.utcnow()
-    return utctime.year, utctime.month, utctime.day, utctime.hour
-
-def ymd():
-    """Return current year, month and date."""
-    utctime = datetime.datetime.utcnow()
-    return utctime.year, utctime.month, utctime.day
-
+    utcstamp = utctime.strftime("%Y-%m-%d")
+    return utcstamp
 
 def midrand(numchars):
     """Return a string of random chars, either uc, lc or numeric.  This
@@ -298,7 +294,7 @@ def msgparse(message):
     # useful during testing, but can be run with a nohist switch in prod.
     if not options.nohist:
         histpath = options.histpath.rstrip("/")
-        histfile = "%s-%s-%s" % ymd()
+        histfile = datestring()
         filename = "%s/%s" % (histpath, histfile)
         try:
             if not os.path.isfile(filename):
