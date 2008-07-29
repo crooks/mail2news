@@ -93,6 +93,9 @@ def init_parser():
     parser.add_option("--subject", action = "store", type = "string",
                     dest = "subject",
                     help = "Override the message subject")
+    parser.add_option("--sender", action = "store", type = "string",
+                    dest = "sender",
+                    help = "Override the messages From header")
     global options
     (options, args) = parser.parse_args()
 
@@ -385,6 +388,9 @@ def msgparse(message):
         msg['Date'] = formatdate()
 
     # If the message doesn't have a From header, insert one.
+    if options.sender:
+    	logger.info("(Parameter) From: %s", options.sender)
+	msg['From'] = options.sender
     if not msg.has_key('From'):
         logger.info("Message has no From header. Inserting a null one.")
         msg['From'] = 'Unknown User <nobody@mixmin.net>'
@@ -403,7 +409,7 @@ def msgparse(message):
 
     # If the message doesn't have a Subject header, insert one.
     if options.subject:
-    	logger.info("(Parameter) Subject: %s", msg['Subject'])
+    	logger.info("(Parameter) Subject: %s", options.subject)
 	msg['Subject'] = options.subject
     elif not msg.has_key('Subject'):
         logger.info("Message has no Subject header. Inserting a null one.")
