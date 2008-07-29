@@ -10,6 +10,7 @@ DATE=`date --date='-1 day' +%Y-%m-%d`
 FILENAME="$LOGPATH/$DATE"
 
 cat $FILENAME | $M2NBIN \
+--nohist \
 --sender='Mixmin <mail2news@m2n.mixmin.net' \
 --newsgroups='alt.privacy.anon-server.stats' \
 --subject="Mixmin Mail2News log for $DATE"
