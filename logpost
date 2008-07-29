@@ -1,7 +1,6 @@
 #!/bin/bash
 
-#LOGPATH="$HOME/python/log"
-LOGPATH="/home/mail2news/python/log"
+LOGPATH="$HOME/python/log"
 M2NBIN="$HOME/python/bin/m2n.py"
 
 # The date *yesterday*.  In other words, we want to mail a log that ran
