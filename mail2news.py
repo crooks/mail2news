@@ -335,12 +335,6 @@ def msgparse(message):
                                      '%s header. Rejecting it.' % header]))
             sys.exit(0)
 
-    # Check for blacklisted From headers.
-    fr = blacklist(msg['From'], config.poison_from)
-    if fr:
-        logger.warn("Rejecting due to blacklisted From \'%s\'", fr)
-        sys.exit(0)
-
     # In priority order (highest first) look for the recipient details in these
     # headers or parameters.  Using To or Cc is nothing but a nasty last-ditch
     # option and shouldn't be used.
@@ -396,6 +390,12 @@ def msgparse(message):
         msg['From'] = 'Unknown User <nobody@mixmin.net>'
     else:
         logger.info("From: %s", msg['From'])
+
+    # Check for blacklisted From headers.
+    fr = blacklist(msg['From'], config.poison_from)
+    if fr:
+        logger.warn("Rejecting due to blacklisted From \'%s\'", fr)
+        sys.exit(0)
 
     # If we are in nospam mode, edit the From header and create an
     # Author-Supplied-Address header.
