@@ -8,8 +8,11 @@ M2NBIN="$HOME/python/bin/m2n.py"
 DATE=`date --date='-1 day' +%Y-%m-%d`
 FILENAME="$LOGPATH/$DATE"
 
-cat $FILENAME | $M2NBIN \
---nohist \
---sender='Mixmin <mail2news@m2n.mixmin.net' \
---newsgroups='alt.privacy.anon-server.stats' \
---subject="Mixmin Mail2News log for $DATE"
+if [ -f $FILENAME ]
+then
+  cat $FILENAME | $M2NBIN \
+  --nohist \
+  --sender='Mixmin <mail2news@m2n.mixmin.net' \
+  --newsgroups='alt.privacy.anon-server.stats' \
+  --subject="Mixmin Mail2News log for $DATE"
+fi
