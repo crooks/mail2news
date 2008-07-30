@@ -487,8 +487,10 @@ def msgparse(message):
 def blacklist(item, list):
     """Check for headers that contain a blacklisted string."""
     for name in list:
-        if item.find(name):
-	    logger.debug("Blacklist check found match of %s in %s", name, item)
+        match = item.find(name)
+        if match > 0:
+	    logger.debug(long_string(["Blacklist match of %s " % name,
+	                              "in %s at position %s" % item, match]))
             return name
     return False
 
