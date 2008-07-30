@@ -385,11 +385,11 @@ def msgparse(message):
     if options.sender:
     	logger.info("(Parameter) From: %s", options.sender)
 	msg['From'] = options.sender
-    if not msg.has_key('From'):
+    elif msg.has_key('From'):
+        logger.info("From: %s", msg['From'])
+    else:
         logger.info("Message has no From header. Inserting a null one.")
         msg['From'] = 'Unknown User <nobody@mixmin.net>'
-    else:
-        logger.info("From: %s", msg['From'])
 
     # Check for blacklisted From headers.
     fr = blacklist(msg['From'], config.poison_from)
@@ -411,11 +411,11 @@ def msgparse(message):
     if options.subject:
     	logger.info("(Parameter) Subject: %s", options.subject)
 	msg['Subject'] = options.subject
-    elif not msg.has_key('Subject'):
+    elif msg.has_key('Subject'):
+        logger.info("Subject: %s", msg['Subject'])
+    else:
         logger.info("Message has no Subject header. Inserting a null one.")
         msg['Subject'] = 'None'
-    else:
-        logger.info("Subject: %s", msg['Subject'])
 
     # Check for preloaded Path headers, these are legal but unusual.
     if msg.has_key('Path'):
