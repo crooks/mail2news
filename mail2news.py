@@ -316,7 +316,7 @@ def msgparse(message):
         hist.write('\n')
         hist.close()
     else:
-        logger.info("Message not logged due to --nohist switch.")
+        logger.debug("Message not logged due to --nohist switch.")
 
     # Check to see if the client HELO is blacklisted.  This only works if the
     # HELO is passed by the MTA to the program.
@@ -488,6 +488,7 @@ def blacklist(item, list):
     """Check for headers that contain a blacklisted string."""
     for name in list:
         if item.find(name):
+	    logger.debug("Blacklist check found match of %s in %s", name, item)
             return name
     return False
 
