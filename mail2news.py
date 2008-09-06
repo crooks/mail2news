@@ -473,14 +473,20 @@ def msgparse(message):
         logger.warn(long_string(["We don't appear to have an abuse contact ",
                                  "address. Without one, recipients of abuse ",
                                  "will be unhappy."]))
-    
+
     # The following section parses the message payload.  Remove
     # them to pass the payload unchanged.
     if msg.is_multipart():
+        payload = msg.get_payload(decode=1)
         logger.info('This is a multipart message.  Bypassing payload parsing.')
     else:
-        payload = msg.get_payload(decode=1)
-        msg.set_payload(body_parse(payload))
+        preparse_payload = msg.get_payload(decode=1)
+        payload = body_parse(preparse_payload)
+        msg.set_payload(payload)
+
+    # Last (in order to be accurate) try and count the number of lines in the
+    # message.
+    msg['Lines'] = str(payload.count("\n") + 1)
 
     return msg['Message-ID'], dest_server, msg.as_string()
 
