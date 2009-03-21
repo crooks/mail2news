@@ -162,7 +162,7 @@ def validate_stamp(stamp):
         logger.info('Timesstamp (%s) is valid and within bounds.', stamp)
         return True
     else:
-        logger.warn(long_string(['Timestamp (%s) is out of bounds' % stamp,
+        logger.warn(long_string(['Timestamp (%s) is out of bounds. ' % stamp,
                                  'Rejecting message.']))
         sys.exit(0)
 
