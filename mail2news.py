@@ -569,8 +569,9 @@ def newssend(mid, nntphosts, content):
                 s = nntplib.NNTP(host)
                 logger.debug("IHAVE process connected to %s", host)
             except:
+                err = sys.exc_info()[1][1]
                 logger.error(long_string(['Error during IHAVE conection to ',
-                                          host, '. ', sys.exc_info()[1]]))
+                                          host, '. ', err]))
                 continue
             try:
                 s.ihave(mid, payload)
@@ -587,8 +588,9 @@ def newssend(mid, nntphosts, content):
             try:
                 s = nntplib.NNTP(host, readermode=True)
             except:
+                err = sys.exc_info()[1][1]
                 logger.error(long_string(['Error during POST connection to ',
-                                           host, '. ', sys.exc_info()[1]]))
+                                           host, '. ', err]))
                 continue
             try:
                 s.post(payload)
