@@ -216,10 +216,15 @@ def extract_posting_hosts(allhosts, groups):
     good_methods = ["post", "ihave"]
     goodhosts = {}
     for server in allhosts:
+        # Define a default port number to use for nntp.
+        port = 119
         # Reject a given server if we didn't get passed the two parameters
-        # we require:- Regex Pattern and Posting Method.
+        # we require:- Regex Pattern and Posting Method.  There is also an
+        # extended method of three parameters, the third being port number.
         if len(allhosts[server]) == 2:
             pattern, method = allhosts[server]
+        elif len(allhosts[server]) == 3:
+            pattern, method, port = allhosts[server]
         else:
             logger.warn("Invalid configuration for server %s", server)
             continue
@@ -238,7 +243,7 @@ def extract_posting_hosts(allhosts, groups):
         if select:
             logger.debug(long_string(['Selecting host %s as a feed ' % server,
                                       'recipient with method %s' % method]))
-            goodhosts[server] = method
+            goodhosts[server] = [method, port]
     return goodhosts
 
 def middate():
@@ -562,17 +567,21 @@ def newssend(mid, nntphosts, content):
     # unreachable.
     socket.setdefaulttimeout(config.timeout)
     for host in nntphosts:
+        method, port = nntphosts[host]
+	print host, method, port
         payload = StringIO.StringIO(content)
         logger.debug("Attempting delivery to %s", host)
-        if nntphosts[host] == 'ihave':
+        if method == 'ihave':
             try:
-                s = nntplib.NNTP(host)
+                s = nntplib.NNTP(host, port)
                 logger.debug("IHAVE process connected to %s", host)
-            except:
-                err = sys.exc_info()[1][1]
-                logger.error(long_string(['Error during IHAVE conection to ',
-                                          host, '. ', err]))
+            except socket.timeout:
+                logger.warn('Timeout during IHAVE conection to %s', host)
                 continue
+            except:
+                logger.error('Unknown error during IHAVE to %s', host)
+                continue
+
             try:
                 s.ihave(mid, payload)
                 logger.info("%s successful IHAVE to %s." % (mid, host))
@@ -586,12 +595,15 @@ def newssend(mid, nntphosts, content):
                                 'unknown error: %s' % sys.exc_info()[1]]))
         else:
             try:
-                s = nntplib.NNTP(host, readermode=True)
-            except:
-                err = sys.exc_info()[1][1]
-                logger.error(long_string(['Error during POST connection to ',
-                                           host, '. ', err]))
+                s = nntplib.NNTP(host, port, readermode=True)
+                logger.debug("POST process connected to %s", host)
+            except socket.timeout:
+                logger.warn('Timeout during POST conection to %s', host)
                 continue
+            except:
+                logger.error('Unknown error during POST to %s', host)
+                continue
+
             try:
                 s.post(payload)
                 logger.info("%s successful POST to %s." % (mid, host))
