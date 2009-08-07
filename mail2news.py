@@ -499,8 +499,8 @@ def blacklist(item, list):
     for name in list:
         match = item.find(name)
         if match > 0:
-	    logger.debug(long_string(["Blacklist match of %s " % name,
-	                              "in %s at position %s" % item, match]))
+	        logger.debug(long_string(["Blacklist match of %s " % name,
+	                                  "in %s at position %s" % item, match]))
             return name
     return False
 
