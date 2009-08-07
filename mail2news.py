@@ -397,7 +397,11 @@ def msgparse(message):
         msg['From'] = 'Unknown User <nobody@mixmin.net>'
 
     # Check for blacklisted From headers.
-    fr = blacklist(msg['From'], config.poison_from)
+    fr = False
+    try:
+        fr = blacklist(msg['From'], config.poison_from)
+    except AttributeError:
+        logger.info("Configuration doesn't contain poison_from")
     if fr:
         logger.warn("Rejecting due to blacklisted From \'%s\'", fr)
         sys.exit(0)
@@ -455,7 +459,11 @@ def msgparse(message):
 
 
     # Check for blacklisted Newsgroups
-    ng = blacklist(msg['Newsgroups'], config.poison_newsgroups)
+    ng = False
+    try:
+        ng = blacklist(msg['Newsgroups'], config.poison_newsgroups)
+    except AttributeError:
+        logger.info("Configuration doesn't contain poison_newsgroups")
     if ng:
         logger.warn(long_string(['Rejecting message due to blacklisted ',
                                  'Newsgroup "%s" in distribution.' % ng]))
@@ -494,14 +502,14 @@ def msgparse(message):
 
     return msg['Message-ID'], dest_server, msg.as_string()
 
-def blacklist(item, list):
+def blacklist(header, list):
     """Check for headers that contain a blacklisted string."""
-    for name in list:
-        match = item.find(name)
+    for item in list:
+        match = header.find(item)
         if match > 0:
-	        logger.debug(long_string(["Blacklist match of %s " % name,
-	                                  "in %s at position %s" % item, match]))
-            return name
+            logger.debug(long_string(["Blacklist match of %s " % item,
+                                      "in %s at position %s" % header, match]))
+            return item
     return False
 
 def body_parse(body):
