@@ -31,6 +31,8 @@ import socket
 from email.Utils import formatdate
 import nntplib
 from optparse import OptionParser
+import hsub
+
 
 def init_logging():
     """Initialise logging.  This should be the first thing done so that all
@@ -416,15 +418,25 @@ def msgparse(message):
             msg['Author-Supplied-Address'] = addy
             msg['From'] = name + '<Use-Author-Supplied-Address-Header@[127.1]>'
 
-    # If the message doesn't have a Subject header, insert one.
-    if options.subject:
-    	logger.info("(Parameter) Subject: %s", options.subject)
-	msg['Subject'] = options.subject
-    elif msg.has_key('Subject'):
+    # If the message has an X-Hash-Subject header then use hSub to Hash the
+    # Subject header.
+    if 'X-Hash-Subject' in msg:
+        logger.info("Message has an X-Hash-Subject header.")
+        hash_subject = hsub.hsub()
+        if 'Subject' in msg:
+            del msg['Subject']
+        msg['Subject'] = hash_subject.hash(msg['X-Hash-Subject'])
+        del msg['X-Hash-Subject']
+    # If not hashing the Subject, just check if we have one.
+    elif options.subject:
+        logger.info("(Parameter) Subject: %s", options.subject)
+        msg['Subject'] = options.subject
+    elif 'Subject' in msg:
         logger.info("Subject: %s", msg['Subject'])
     else:
         logger.info("Message has no Subject header. Inserting a null one.")
         msg['Subject'] = 'None'
+
 
     # Check for preloaded Path headers, these are legal but unusual.
     if msg.has_key('Path'):
