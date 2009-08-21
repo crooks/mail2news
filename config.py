@@ -31,8 +31,8 @@ nntphosts['localhost'] = ['.*', 'ihave']
 nntphosts['news-in.mixmin.net'] = ['^alt\.anonymous\.messages|^alt\.privacy\.anon-server|^local\.|\.test', 'ihave']
 
 # The location of the logfile to write.  Can be overidden with --logfile switch.
-logpath = '/home/mail2news/python/log'
-histpath = '/home/mail2news/python/history'
+logpath = '/crypt/home/crooks/mail2news'
+histpath = '/crypt/home/crooks/mail2news'
 
 # The loglevel to use.  Can be overidden with --loglevel switch.
 loglevel = 'info'
