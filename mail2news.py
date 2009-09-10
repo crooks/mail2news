@@ -98,8 +98,7 @@ def init_parser():
     parser.add_option("--sender", action = "store", type = "string",
                     dest = "sender",
                     help = "Override the messages From header")
-    global options
-    (options, args) = parser.parse_args()
+    return parser.parse_args()
 
 def long_string(loglist):
     """Concatenate strings and return a single long string."""
@@ -277,11 +276,11 @@ def midrand(numchars):
         randstring = randstring + chr(a)
     return randstring
 
-def messageid():
+def messageid(rightpart):
     """Compile a valid Message-ID.  This should never be called outside
     of testing as a message cannot reach the gateway without an ID."""
     leftpart = middate() + "." + midrand(12)
-    mid = '<' + leftpart + '@' + options.path + '>'
+    mid = '<' + leftpart + '@' + rightpart + '>'
     return mid
 
 def msgparse(message):
@@ -298,7 +297,7 @@ def msgparse(message):
     if 'Message-ID' in msg:
         logger.info('Processing message %s' % msg['Message-ID'])
     else:
-        msg['Message-ID'] = messageid()
+        msg['Message-ID'] = messageid(options.path)
         logger.warn(long_string(['Processing message with no Message-ID.  ',
                                  'Assigning %s.' % msg['Message-ID']]))
 
@@ -587,7 +586,6 @@ def newssend(mid, nntphosts, content):
     socket.setdefaulttimeout(config.timeout)
     for host in nntphosts:
         method, port = nntphosts[host]
-	print host, method, port
         payload = StringIO.StringIO(content)
         logger.debug("Attempting delivery to %s", host)
         if method == 'ihave':
@@ -634,3 +632,17 @@ def newssend(mid, nntphosts, content):
             except:
                 logger.warn(long_string(['POST to %s returned an ' % host,
                                 'unknown error: %s' % sys.exc_info()[1]]))
+
+def main():
+    """Initialize the options parser and logging functions, then process
+    messages piped to stdin."""
+    global options
+    (options, args) = init_parser()
+    init_logging()
+    sys.stdout.write("Type message here.  Finish with Ctrl-D.\n")
+    (mid, dest_server, payload) = msgparse(sys.stdin.read())
+    newssend(mid, dest_server, payload)
+
+# Call main function.
+if (__name__ == "__main__"):
+    main()
