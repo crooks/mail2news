@@ -30,7 +30,7 @@ class hsub:
         | 64bit iv | 256bit SHA2 'iv + text' |
         --------------------------------------"""
         # Generate a 64bit random IV if none is provided.
-        if iv is None: iv = urandom(8)
+        if iv is None: iv = self.cryptorandom()
         # Concatenate our IV with a SHA256 hash of text + IV.
         hsub = iv + sha256(iv + text).digest()
         return hsub.encode('hex')[:hsublen]
@@ -45,17 +45,29 @@ class hsub:
         hsublen = len(hsub)
         # 48 digits = 192 bit hsub, the smallest we allow.
         # 80 digits = 320 bit hsub, the full length of SHA256 + 64 bit IV
-        if hsublen < 48 or hsublen > 80:
-            return False
-        try:
-            # The first 64 bits of an hSub are the IV.
-            iv = hsub[:16].decode('hex')
-        except TypeError:
-            # Not all Subjects are hSub'd so just bail out if it's non-hex.
-            return False
+        if hsublen < 48 or hsublen > 80: return False
+        iv = self.hexiv(hsub)
+        if not iv: return False
         # Return True if our generated hSub collides with the supplied
         # sample.
         return (self.hash(text, iv, hsublen) == hsub)
+
+    def cryptorandom(self, bytes = 8):
+        """Return a string of random bytes. By default we return the default
+        IV length (64bits)."""
+        return urandom(bytes)
+
+    def hexiv(self, hsub, digits = 16):
+        """Return the IV from an hsub.  By default the IV is the first
+        64bits of the hsub.  As it's hex encoded, this equates to 16 digits."""
+        # We don't want to process IVs of inadequate length.
+        if len(hsub) < digits: return False
+        try:
+            iv = hsub[:digits].decode('hex')
+        except TypeError:
+            # Not all Subjects are hSub'd so just bail out if it's non-hex.
+            return False
+        return iv
 
 def main():
     """Only used for testing purposes.  We Generate an hSub and then check it
