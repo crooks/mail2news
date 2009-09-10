@@ -39,7 +39,7 @@ def init_logging():
     further operations are logged."""
     loglevels = {'debug': logging.DEBUG, 'info': logging.INFO,
                 'warn': logging.WARN, 'error': logging.ERROR}
-    if loglevels.has_key(options.loglevel):
+    if options.loglevel in loglevels:
         level = loglevels[options.loglevel]
     else:
         level = loglevels['info']
@@ -295,12 +295,12 @@ def msgparse(message):
     # Check to see if we have a Message-ID.  If not, one is assigned
     # automatically.  This will generate a Warning as messages must have
     # valid ID's to have reached the gateway at all.
-    if not msg.has_key('Message-ID'):
+    if 'Message-ID' in msg:
+        logger.info('Processing message %s' % msg['Message-ID'])
+    else:
         msg['Message-ID'] = messageid()
         logger.warn(long_string(['Processing message with no Message-ID.  ',
                                  'Assigning %s.' % msg['Message-ID']]))
-    else:
-        logger.info('Processing message %s' % msg['Message-ID'])
 
     # Before anything else, lets write the message to a history file so that
     # we have a means to see why messages succeeded or failed.  This is very
@@ -337,7 +337,7 @@ def msgparse(message):
     # Check for poison headers in the message.  Any of these will result in the
     # message being rejected.
     for header in config.poison_headers:
-        if msg.has_key(header):
+        if header in msg:
             logger.warn(long_string(['Message contains a blacklisted ',
                                      '%s header. Rejecting it.' % header]))
             sys.exit(0)
@@ -357,11 +357,11 @@ def msgparse(message):
     if options.newsgroups:
         dest = options.newsgroups
         logger.debug("Newsgroups passed as arguement: %s", dest)
-        if msg.has_key('Newsgroups'):
+        if 'Newsgroups' in msg:
             logger.info(long_string(['Newsgroups header overridden by ',
                                      '--newsgroups arguement']))
 
-    elif msg.has_key('Newsgroups'):
+    elif 'Newsgroups' in msg:
         dest = msg['Newsgroups']
         del msg['Newsgroups']
         logger.debug('Message has a Newsgroups header of %s', dest)
@@ -384,7 +384,7 @@ def msgparse(message):
     groups, msg['Newsgroups'] = ngvalidate(dest)
 
     # If the message doesn't have a Date header, insert one.
-    if not msg.has_key('Date'):
+    if not 'Date' in msg:
         logger.info("Message has no Date header. Inserting current timestamp.")
         msg['Date'] = formatdate()
 
@@ -392,7 +392,7 @@ def msgparse(message):
     if options.sender:
     	logger.info("(Parameter) From: %s", options.sender)
 	msg['From'] = options.sender
-    elif msg.has_key('From'):
+    elif 'From' in msg:
         logger.info("From: %s", msg['From'])
     else:
         logger.info("Message has no From header. Inserting a null one.")
@@ -439,13 +439,13 @@ def msgparse(message):
 
 
     # Check for preloaded Path headers, these are legal but unusual.
-    if msg.has_key('Path'):
+    if 'Path' in msg:
         logger.info("Message has a preloaded path header of %s", msg['Path'])
 
     # If the message has an X-Newsserver header, use the specified posting host
     # instead of the default servers.
     # TODO probably should do some error checking of the supplied hostname:port
-    if msg.has_key('X-Newsserver'):
+    if 'X-Newsserver' in msg:
         logger.info(long_string(['Message directs posting to ',
                                  msg['X-Newsserver'],
                                  '. Adding comment header.']))
@@ -453,13 +453,13 @@ def msgparse(message):
             'issued a directive to force posting through ',
             '%s. If this is undesirable, please ' % msg['X-Newsserver'],
             'contact the administrator at the supplied abuse address.'])
-        if not msg.has_key('Comments'):
+        if not 'Comments' in msg:
             logger.debug("Assigned header: Comments")
 	    msg['Comments'] = comment_text
         else:
             for free_comment in range(1,99):
                 comments_header = 'Comments' + str(free_comment)
-                if not msg.has_key(comments_header):
+                if not comments_header in msg:
                     msg[comments_header] = comment_text
                     logger.debug("Assigned header: %s", comments_header)
                     break

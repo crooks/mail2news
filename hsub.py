@@ -3,7 +3,7 @@
 # vim: tabstop=4 expandtab shiftwidth=4 autoindent
 #
 # Copyright (C) 2009 Steve Crook <steve@mixmin.net>
-# $Id: hsub.py 25 2009-06-25 09:12:08Z crooks $
+# $Id$
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by the
@@ -31,7 +31,7 @@ class hsub:
         --------------------------------------"""
         # Generate a 64bit random IV if none is provided.
         if iv is None: iv = urandom(8)
-        # Concatenate our IV with a SHA1 hash of text + IV.
+        # Concatenate our IV with a SHA256 hash of text + IV.
         hsub = iv + sha256(iv + text).digest()
         return hsub.encode('hex')[:hsublen]
 
