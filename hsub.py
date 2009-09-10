@@ -58,7 +58,7 @@ class hsub:
         return urandom(bytes)
 
     def hexiv(self, hsub, digits = 16):
-        """Return the IV from an hsub.  By default the IV is the first
+        """Return the decoded IV from an hsub.  By default the IV is the first
         64bits of the hsub.  As it's hex encoded, this equates to 16 digits."""
         # We don't want to process IVs of inadequate length.
         if len(hsub) < digits: return False
@@ -71,12 +71,16 @@ class hsub:
 
 def main():
     """Only used for testing purposes.  We Generate an hSub and then check it
-    using the same input text.  A returned True indicates a match."""
-    text = "Testing"
+    using the same input text."""
+    text = test.cryptorandom()
     hsub = test.hash(text)
+    iv = test.hexiv(hsub)
     print "hsub: " + hsub
-    print "Length: %d" % len(hsub)
-    print "Collision: %s" % test.check(text, hsub)
+    print "IV:   %s" % iv.encode('hex')
+    print "hsub length: %d bytes" % len(hsub)
+    print "IV Length:   %2d bytes" % len(iv)
+    print "Should return True:  %s" % test.check(text, hsub)
+    print "Should return False: %s" % test.check('false', hsub)
 
 # Call main function.
 if (__name__ == "__main__"):
