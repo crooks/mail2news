@@ -73,3 +73,9 @@ poison_newsgroups = []
 
 # Reject messages with this string in the From header.
 poison_from = []
+
+#### Moderated Processing ####
+# This section relates to paramters specific to handling moderated groups
+active_url = "ftp://ftp.isc.org/usenet/CONFIG/active.bz2"
+active_bz2_file = "/tmp/active.bz2"
+moderated_shelve = "/tmp/active.shelve"
