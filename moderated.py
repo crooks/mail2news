@@ -15,10 +15,11 @@
 # or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 # for more details.
 
-import urllib2
+from urllib2 import Request, urlopen
 import shelve
 import bz2
 import config
+import socket
 
 class moderated:
     """Moderated Newsgroups need to be handled differently to unmoderated
@@ -27,26 +28,32 @@ class moderated:
     within this class retrieve the Usenet active file and extract a dictionary
     of moderated groups.  Posts can then be checked against that dict."""
 
-    def GetUrl(self,
-               url = config.active_url,
-               bz2file = config.active_bz2_file):
+    def GetUrl(self, url, bz2file):
         """Retreive the current Usenet active file."""
-        urlfile = urllib2.Request(url)
+        process = False
+        socket.setdefaulttimeout(config.timeout)
+        req = Request(url)
         try:
-            opener = urllib2.urlopen(urlfile)
-        except urllib2.URLError:
-            print "Unable to retreive %s." % urlfile
-            return False
-        local_file = open(bz2file, "w")
-        local_file.write(opener.read())
-        local_file.close()
+            response = urlopen(req)
+            process = True
+        except IOError,e:
+            if hasattr(e, 'reason'):
+                print "Unable to reach server: %s" % e.reason
+            elif hasattr(e, 'code'):
+                print "Server unable to fulfil request: %s" % e.code
+            elif hasattr(e, 'strerror'):
+                print "Server unable to fulfil request: %s" % e.strerror
+            else:
+                print "Unknown error: Unable to retreive %s" % url
+        if process:
+            local_file = open(bz2file, "w")
+            local_file.write(response.read())
+            local_file.close()
+            self.Extract_Moderated(config.moderated_shelve, bz2file)
 
-    def Extract_Moderated(self,
-                          dictfile = config.moderated_shelve,
-                          bz2file = config.active_bz2_file):
+    def Extract_Moderated(self, dictfile, bz2file):
         """Sequentially decompress a Usenet active file and generate a
         persistent Shelve of the contents."""
-        #local_file = open(file, "r")
         dictobj = shelve.open(dictfile)
         local_file = bz2.BZ2File(bz2file, 'r')
         for line in local_file:
@@ -66,7 +73,8 @@ class moderated:
                        grouplist,
                        dictfile = config.moderated_shelve):
         """Take a list of group names and check if any of them are moderated.
-        Should any of the list be moderated, the function will return True."""
+        Should any of the list be moderated, the function will return the
+        first moderated group in the distribution."""
         dictobj = shelve.open(dictfile)
         match = False
         for group in grouplist:
@@ -78,9 +86,7 @@ class moderated:
 
 def main():
     print "Retrieving URL"
-    #test.GetUrl()
-    print "Generating Moderated List"
-    #test.Extract_Moderated()
+    test.GetUrl(config.active_url, config.active_bz2_file)
     print "Testing Moderated Group, (should return newsgroup)"
     print test.CheckModerated(['news.admin.net-abuse.policy'])
     print "Testing Unmoderated Group, (should return False)"

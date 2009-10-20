@@ -23,7 +23,7 @@ path = 'mail2news.mixmin.net'
 
 # Socket timeout in seconds.  This prevents the posting process from hanging
 # forever if an NNTP server is not reachable.
-timeout = 60
+timeout = 10
 
 # The hosts to send the message to and the delivery method (ihave or post).
 nntphosts = {}
@@ -76,6 +76,6 @@ poison_from = []
 
 #### Moderated Processing ####
 # This section relates to paramters specific to handling moderated groups
-active_url = "ftp://ftp.isc.org/usenet/CONFIG/active.bz2"
+active_url = "http://ftp.isc.org/usenet/CONFIG/active.bz2"
 active_bz2_file = "/tmp/active.bz2"
 moderated_shelve = "/tmp/active.shelve"
