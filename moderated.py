@@ -16,6 +16,7 @@
 # for more details.
 
 from urllib2 import Request, urlopen
+import os.path
 import shelve
 import bz2
 import config
@@ -35,27 +36,39 @@ class moderated:
         req = Request(url)
         try:
             response = urlopen(req)
-            process = True
+        # Handle errors when URL cannot be retreived.
         except IOError,e:
             if hasattr(e, 'reason'):
-                print "Unable to reach server: %s" % e.reason
+                message = "Unable to reach server: %s" % e.reason
             elif hasattr(e, 'code'):
-                print "Server unable to fulfil request: %s" % e.code
+                message = "Server unable to fulfil request: %s" % e.code
             elif hasattr(e, 'strerror'):
-                print "Server unable to fulfil request: %s" % e.strerror
+                message = "Server unable to fulfil request: %s" % e.strerror
             else:
-                print "Unknown error: Unable to retreive %s" % url
-        if process:
-            local_file = open(bz2file, "w")
-            local_file.write(response.read())
-            local_file.close()
-            self.Extract_Moderated(config.moderated_shelve, bz2file)
+                message = "Unknown error: Unable to retreive %s" % url
+            return False, message
 
+        # If we get here then the URL must have been retreived as all
+        # exception conditions must return.
+        local_file = open(bz2file, "w")
+        local_file.write(response.read())
+        local_file.close()
+        return self.Extract_Moderated(config.moderated_shelve,
+                                                      bz2file)
     def Extract_Moderated(self, dictfile, bz2file):
         """Sequentially decompress a Usenet active file and generate a
         persistent Shelve of the contents."""
+        # If we don't have a compressed file to work from, just bail out.
+        if not os.path.isfile(bz2file):
+            error = "Unable to open %s" % bz2file
+            return False, error
+        # Open the persistent shelve to write changes to moderated groups
+        # extracted from the bz2 compressed active file.
         dictobj = shelve.open(dictfile)
         local_file = bz2.BZ2File(bz2file, 'r')
+
+        # Process each line of the bz2 active file and write moderated groups
+        # to the shelve.
         for line in local_file:
             grp, high, low, flag = line.rstrip().split(" ")
             if flag == 'm':
@@ -68,6 +81,7 @@ class moderated:
                     del dictobj[grp]
         local_file.close()
         dictobj.close()
+        return True, "Moderated shelve updated"
 
     def CheckModerated(self,
                        grouplist,
@@ -86,7 +100,8 @@ class moderated:
 
 def main():
     print "Retrieving URL"
-    test.GetUrl(config.active_url, config.active_bz2_file)
+    retcode, message = test.GetUrl(config.active_url, config.active_bz2_file)
+    print message
     print "Testing Moderated Group, (should return newsgroup)"
     print test.CheckModerated(['news.admin.net-abuse.policy'])
     print "Testing Unmoderated Group, (should return False)"
