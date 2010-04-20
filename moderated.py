@@ -30,7 +30,9 @@ class moderated:
     of moderated groups.  Posts can then be checked against that dict."""
 
     def GetUrl(self, url, bz2file):
-        """Retreive the current Usenet active file."""
+        """Retreive the current Usenet active file.  The function returns
+        two paramaters: A boolean that returns True to indicate success and a
+        string message containing details."""
         process = False
         socket.setdefaulttimeout(config.timeout)
         req = Request(url)

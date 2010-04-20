@@ -104,7 +104,7 @@ def long_string(loglist):
     """Concatenate strings and return a single long string."""
     logmessage = ""
     for line in loglist:
-        logmessage = logmessage + line
+        logmessage += line
     return logmessage
 
 def parse_recipient(user):
@@ -510,6 +510,8 @@ def msgparse(message):
         # Last (in order to be accurate) try and count the number of lines in the
         # message.
         msg['Lines'] = str(payload.count("\n") + 1)
+
+    msg['Injection-Info'] = config.path
 
     return msg['Message-ID'], dest_server, msg.as_string()
 
