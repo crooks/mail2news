@@ -529,8 +529,7 @@ def blacklist(header, list):
     for item in list:
         match = header.find(item)
         if match > 0:
-            logger.debug(long_string(["Blacklist match of %s " % item,
-                                      "in %s at position %s" % header, match]))
+            logger.debug("From header " + header + " matches " + item)
             return item
     return False
 
