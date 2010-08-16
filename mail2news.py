@@ -400,7 +400,7 @@ def msgparse(message):
     # Check for blacklisted From headers.
     fr = False
     try:
-        fr = blacklist(msg['From'], config.poison_from)
+        fr = blacklist(msg['From'], file2list('bad_from'))
     except AttributeError:
         logger.info("Configuration doesn't contain poison_from")
     if fr:
@@ -486,7 +486,7 @@ def msgparse(message):
 
     # Add additional headers relating to the mail2news gateway.
     try:
-        msg['Path'] = options.path
+        msg['Path'] = "%s!not-for-mail" % options.path
     except:
         logger.error(long_string(['Cannot assign domain to Path header. ',
                                   'Unable to continue processing.']))
@@ -511,9 +511,18 @@ def msgparse(message):
         # message.
         msg['Lines'] = str(payload.count("\n") + 1)
 
-    msg['Injection-Info'] = config.path
+    msg['Injection-Info'] = options.path
 
-    return msg['Message-ID'], dest_server, msg.as_string()
+    # Convert message to a string and validate its size.
+    txt_msg = msg.as_string()
+    size = len(txt_msg)
+    if size > config.maxbytes:
+        logger.warn(long_string(['Message exceeds %d ' % config.maxbytes,
+                                 'size limit. Rejecting.']))
+        sys.exit(1)
+    logger.debug('Message is %d bytes', size)
+
+    return msg['Message-ID'], dest_server, txt_msg
 
 def blacklist(header, list):
     """Check for headers that contain a blacklisted string."""
@@ -574,15 +583,20 @@ def fromparse(fromhdr):
         addy = addy.replace('@', '<AT>')
     return name,addy
 
+def file2list(filename):
+    """Read a file and return each line as a list item."""
+    items = []
+    if os.path.isfile(filename):
+        readlist = open(filename, 'r')
+        for line in readlist:
+            entry = line.split('#', 1)[0].rstrip()
+            if len(entry) > 0:
+                items.append(entry)
+    return items
+
 def newssend(mid, nntphosts, content):
     """Time to send the message using either IHAVE or POST for each defined
     recipient of the message.  We also do a crude size check."""
-    size = len(content)
-    if size > config.maxbytes:
-        logger.warn(long_string(['Message exceeds %d ' % config.maxbytes,
-                                 'size limit. Rejecting.']))
-        sys.exit(0)
-    logger.debug('Message is %d bytes', size)
     # Socket timeout prevents processes hanging forever if an NNTP server is
     # unreachable.
     socket.setdefaulttimeout(config.timeout)
