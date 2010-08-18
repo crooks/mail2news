@@ -33,50 +33,31 @@ import nntplib
 from optparse import OptionParser
 import hsub
 
+LOGLEVEL = 'info'
+HOMEDIR = os.path.expanduser('~')
+ETCPATH = os.path.join(HOMEDIR, 'python', 'etc')
+LOGPATH = os.path.join(HOMEDIR, 'python', 'log')
 
 def init_logging():
     """Initialise logging.  This should be the first thing done so that all
     further operations are logged."""
     loglevels = {'debug': logging.DEBUG, 'info': logging.INFO,
                 'warn': logging.WARN, 'error': logging.ERROR}
-    if options.loglevel in loglevels:
-        level = loglevels[options.loglevel]
-    else:
-        level = loglevels['info']
-    global logger
-    logger = logging.getLogger('m2n')
-    logpath = options.logpath.rstrip("/")
-    logfile = datestring()
-    filename = "%s/%s" % (logpath, logfile)
-    try:
-        if not os.path.isfile(filename):
-            lf = open(filename, 'w')
-            lf.close()
-            os.chmod(filename, 0644)
-            logger.debug('Created new logfile %s', filename)
-        hdlr = logging.FileHandler(filename)
-    except IOError:
-        print "Error: Unable to initialize logger.  Check file permissions?"
-        sys.exit(1)
-    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-    hdlr.setFormatter(formatter)
-    logger.addHandler(hdlr)
-    logger.setLevel(level)
+    logfile = os.path.join(LOGPATH, datestring())
+    logging.basicConfig(
+        filename=logfile,
+        level = loglevels[LOGLEVEL],
+        format = '%(asctime)s %(process)d %(levelname)s %(message)s',
+        datefmt = '%Y-%m-%d %H:%M:%S')
 
 def init_parser():
     """Initialise the the Options Parser and read options.  It would be nice
     to do this after logging is initialised, but we need options in order to
     do that, so the egg must come before the chicken!"""
     parser = OptionParser()
-    parser.add_option("-l", "--logpath", action = "store", type = "string",
-                    dest = "logpath", default = config.logpath,
-                    help = "Location of the log files.")
     parser.add_option("--histpath", action = "store", type = "string",
                     dest = "histpath", default = config.histpath,
                     help = "Location of history file")
-    parser.add_option("--loglevel", action = "store", type = "string",
-                    dest = "loglevel", default = config.loglevel,
-                    help = "Logging level, (error, warn, notice, info, debug)")
     parser.add_option("-u", "--user", action = "store", type = "string",
                     dest = "user",
                     help = "Recipient of the message.")
@@ -118,7 +99,7 @@ def parse_recipient(user):
         user = domainchk.group(1)
     userfmt = re.match('(mail2news|mail2news_nospam)\-([0-9]{8})\-(.*)', user)
     if userfmt:
-        logger.info(long_string(['Message has a correctly formatted ',
+        logging.info(long_string(['Message has a correctly formatted ',
                                  'recipient. Validating it.']))
         recipient = userfmt.group(1)
         timestamp = userfmt.group(2)
@@ -129,12 +110,12 @@ def parse_recipient(user):
         # Check to see if the header includes a 'nospam' instruction.
         nospam = False
         if recipient == 'mail2news_nospam':
-            logger.info(long_string(['Message includes a nospam directive.  ',
+            logging.info(long_string(['Message includes a nospam directive.  ',
                                      'Will munge headers accordingly.']))
             nospam = True
         return timestamp, newsgroups, nospam
     else:
-        logger.warn('Badly formatted recipient.  Rejecting message.')
+        logging.warn('Badly formatted recipient.  Rejecting message.')
         sys.exit(0)
 
 def validate_stamp(stamp):
@@ -154,16 +135,16 @@ def validate_stamp(stamp):
     try:
         nowtime = datetime.datetime(year,month,day)
     except ValueError:
-        logger.warn('Malformed date element. Rejecting message.')
+        logging.warn('Malformed date element. Rejecting message.')
         sys.exit(0)
 
     # By this point, the supplied date arg must be valid, but does
     # it fall within acceptable bounds?
     if nowtime > beforetime and nowtime < aftertime:
-        logger.info('Timesstamp (%s) is valid and within bounds.', stamp)
+        logging.info('Timesstamp (%s) is valid and within bounds.', stamp)
         return True
     else:
-        logger.warn(long_string(['Timestamp (%s) is out of bounds. ' % stamp,
+        logging.warn(long_string(['Timestamp (%s) is out of bounds. ' % stamp,
                                  'Rejecting message.']))
         sys.exit(0)
 
@@ -180,16 +161,16 @@ def ngvalidate(newsgroups):
         fmtchk = re.match('[a-z]+(\.[0-9a-z-+_]+)+$', ng)
         if fmtchk:
             if ng in goodng:
-                logger.info(long_string(['Duplicate newsgroup entry of ',
+                logging.info(long_string(['Duplicate newsgroup entry of ',
                                          '%s. Dropping one.' % ng]))
             else:
                 goodng.append(ng)
         else:
-            logger.info("%s is not a validated newsgroup, ignoring.", ng)
+            logging.info("%s is not a validated newsgroup, ignoring.", ng)
 
     # No point proceeding if there are no valid Newsgroups.
     if len(goodng) < 1:
-        logger.warn("Message has no valid newsgroups.  Rejecting it.")
+        logging.warn("Message has no valid newsgroups.  Rejecting it.")
         sys.exit(0)
 
     # Create a valid entry for a Newsgroups header.  The first entry is just
@@ -197,11 +178,11 @@ def ngvalidate(newsgroups):
     header = goodng[0]
     for ng in range(1, len(goodng)):
         header = header + ',' + goodng[ng]
-    logger.info("Validated Newsgroups header is: %s", header)
+    logging.info("Validated Newsgroups header is: %s", header)
 
     # Check crosspost limit
     if len(goodng) > config.maxcrossposts:
-        logger.warn(long_string(['Message contains %d ' % len(goodng),
+        logging.warn(long_string(['Message contains %d ' % len(goodng),
                                  'newsgroups, exceeding crosspost limit of ',
                                  '%d. Rejecting' % config.maxcrossposts]))
         sys.exit(0)
@@ -227,11 +208,11 @@ def extract_posting_hosts(allhosts, groups):
         elif len(allhosts[server]) == 3:
             pattern, method, port = allhosts[server]
         else:
-            logger.warn("Invalid configuration for server %s", server)
+            logging.warn("Invalid configuration for server %s", server)
             continue
         # Validate the feed method we are configured to use.
         if not method in good_methods:
-            logger.warn("Unknown feed method for server %s", server)
+            logging.warn("Unknown feed method for server %s", server)
             continue
         select = True
         for group in groups:
@@ -242,7 +223,7 @@ def extract_posting_hosts(allhosts, groups):
                 select = False
                 break
         if select:
-            logger.debug(long_string(['Selecting host %s as a feed ' % server,
+            logging.debug(long_string(['Selecting host %s as a feed ' % server,
                                       'recipient with method %s' % method]))
             goodhosts[server] = [method, port]
     return goodhosts
@@ -295,10 +276,10 @@ def msgparse(message):
     # automatically.  This will generate a Warning as messages must have
     # valid ID's to have reached the gateway at all.
     if 'Message-ID' in msg:
-        logger.info('Processing message %s' % msg['Message-ID'])
+        logging.info('Processing message %s' % msg['Message-ID'])
     else:
         msg['Message-ID'] = messageid(options.path)
-        logger.warn(long_string(['Processing message with no Message-ID.  ',
+        logging.warn(long_string(['Processing message with no Message-ID.  ',
                                  'Assigning %s.' % msg['Message-ID']]))
 
     # Before anything else, lets write the message to a history file so that
@@ -313,23 +294,23 @@ def msgparse(message):
                 hf = open(filename, 'w')
                 hf.close()
                 os.chmod(filename, 0644)
-                logger.debug('Created new history file: %s', filename)
+                logging.debug('Created new history file: %s', filename)
         except IOError:
-            logger.error(long_string(['Unable to initialize history file.  ',
+            logging.error(long_string(['Unable to initialize history file.  ',
                                       'Check file permissions?']))
         hist = open(filename, 'a')
         hist.write(message)
         hist.write('\n')
         hist.close()
     else:
-        logger.debug("Message not logged due to --nohist switch.")
+        logging.debug("Message not logged due to --nohist switch.")
 
     # Check to see if the client HELO is blacklisted.  This only works if the
     # HELO is passed by the MTA to the program.
     if options.helo:
         helo = blacklist(options.helo, config.poison_helo)
         if helo:
-            logger.warn(long_string(['Message received from blacklisted relay ',
+            logging.warn(long_string(['Message received from blacklisted relay ',
                                      '%s.  Rejecting it.' % helo]))
             sys.exit(0)
 
@@ -337,7 +318,7 @@ def msgparse(message):
     # message being rejected.
     for header in config.poison_headers:
         if header in msg:
-            logger.warn(long_string(['Message contains a blacklisted ',
+            logging.warn(long_string(['Message contains a blacklisted ',
                                      '%s header. Rejecting it.' % header]))
             sys.exit(0)
 
@@ -355,26 +336,26 @@ def msgparse(message):
     # valid recipient in the correct format and with a valid timestamp.
     if options.newsgroups:
         dest = options.newsgroups
-        logger.debug("Newsgroups passed as arguement: %s", dest)
+        logging.debug("Newsgroups passed as arguement: %s", dest)
         if 'Newsgroups' in msg:
-            logger.info(long_string(['Newsgroups header overridden by ',
+            logging.info(long_string(['Newsgroups header overridden by ',
                                      '--newsgroups arguement']))
 
     elif 'Newsgroups' in msg:
         dest = msg['Newsgroups']
         del msg['Newsgroups']
-        logger.debug('Message has a Newsgroups header of %s', dest)
+        logging.debug('Message has a Newsgroups header of %s', dest)
         if recipient.startswith('mail2news_nospam'):
             nospam = True
-            logger.info(long_string(['Message includes a nospam directive. ',
+            logging.info(long_string(['Message includes a nospam directive. ',
                                      'Will munge headers accoringly.']))
     else:
-        logger.info(long_string(['No Newsgroups header, trying to parse ',
+        logging.info(long_string(['No Newsgroups header, trying to parse ',
                                  'recipient information']))
         (stamp, dest, nospam) = parse_recipient(recipient)
         # Check to see if the timestamp extracted from the recipient is valid.
         if not validate_stamp(stamp):
-            logger.warn(long_string(['No Newsgroups header or valid ',
+            logging.warn(long_string(['No Newsgroups header or valid ',
                                      'recipient. Rejecting message.']))
             sys.exit(0)
 
@@ -384,28 +365,28 @@ def msgparse(message):
 
     # If the message doesn't have a Date header, insert one.
     if not 'Date' in msg:
-        logger.info("Message has no Date header. Inserting current timestamp.")
+        logging.info("Message has no Date header. Inserting current timestamp.")
         msg['Date'] = formatdate()
 
     # If the message doesn't have a From header, insert one.
     if options.sender:
-    	logger.info("(Parameter) From: %s", options.sender)
+    	logging.info("(Parameter) From: %s", options.sender)
 	msg['From'] = options.sender
     elif 'From' in msg:
-        logger.info("From: %s", msg['From'])
+        logging.info("From: %s", msg['From'])
     else:
-        logger.info("Message has no From header. Inserting a null one.")
+        logging.info("Message has no From header. Inserting a null one.")
         msg['From'] = 'Unknown User <nobody@mixmin.net>'
 
     # Check for blacklisted From headers.
-    fr = False
-    try:
-        fr = blacklist(msg['From'], file2list('bad_from'))
-    except AttributeError:
-        logger.info("Configuration doesn't contain poison_from")
-    if fr:
-        logger.warn("Rejecting due to blacklisted From \'%s\'", fr)
-        sys.exit(0)
+    filename = os.path.join(ETCPATH, 'bad_from')
+    bad_froms = file2list(filename)
+    froms = msg['From'].split(',')
+    for f in froms:
+        fr = f.strip()
+        if blacklist(fr, bad_froms):
+            logging.warn("Rejecting due to blacklisted From \'%s\'", fr)
+            sys.exit(1)
 
     # If we are in nospam mode, edit the From header and create an
     # Author-Supplied-Address header.
@@ -420,7 +401,7 @@ def msgparse(message):
     # If the message has an X-Hash-Subject header then use hSub to Hash the
     # Subject header.
     if 'X-Hash-Subject' in msg:
-        logger.info("Message has an X-Hash-Subject header.")
+        logging.info("Message has an X-Hash-Subject header.")
         hash_subject = hsub.hsub()
         if 'Subject' in msg:
             del msg['Subject']
@@ -428,24 +409,24 @@ def msgparse(message):
         del msg['X-Hash-Subject']
     # If not hashing the Subject, just check if we have one.
     elif options.subject:
-        logger.info("(Parameter) Subject: %s", options.subject)
+        logging.info("(Parameter) Subject: %s", options.subject)
         msg['Subject'] = options.subject
     elif 'Subject' in msg:
-        logger.info("Subject: %s", msg['Subject'])
+        logging.info("Subject: %s", msg['Subject'])
     else:
-        logger.info("Message has no Subject header. Inserting a null one.")
+        logging.info("Message has no Subject header. Inserting a null one.")
         msg['Subject'] = 'None'
 
 
     # Check for preloaded Path headers, these are legal but unusual.
     if 'Path' in msg:
-        logger.info("Message has a preloaded path header of %s", msg['Path'])
+        logging.info("Message has a preloaded path header of %s", msg['Path'])
 
     # If the message has an X-Newsserver header, use the specified posting host
     # instead of the default servers.
     # TODO probably should do some error checking of the supplied hostname:port
     if 'X-Newsserver' in msg:
-        logger.info(long_string(['Message directs posting to ',
+        logging.info(long_string(['Message directs posting to ',
                                  msg['X-Newsserver'],
                                  '. Adding comment header.']))
         comment_text = long_string(['A user of this Mail2News Gateway ',
@@ -453,14 +434,14 @@ def msgparse(message):
             '%s. If this is undesirable, please ' % msg['X-Newsserver'],
             'contact the administrator at the supplied abuse address.'])
         if not 'Comments' in msg:
-            logger.debug("Assigned header: Comments")
+            logging.debug("Assigned header: Comments")
 	    msg['Comments'] = comment_text
         else:
             for free_comment in range(1,99):
                 comments_header = 'Comments' + str(free_comment)
                 if not comments_header in msg:
                     msg[comments_header] = comment_text
-                    logger.debug("Assigned header: %s", comments_header)
+                    logging.debug("Assigned header: %s", comments_header)
                     break
         dest_server = {msg['X-Newsserver']: 'post'}
     else:
@@ -474,9 +455,9 @@ def msgparse(message):
     try:
         ng = blacklist(msg['Newsgroups'], config.poison_newsgroups)
     except AttributeError:
-        logger.info("Configuration doesn't contain poison_newsgroups")
+        logging.info("Configuration doesn't contain poison_newsgroups")
     if ng:
-        logger.warn(long_string(['Rejecting message due to blacklisted ',
+        logging.warn(long_string(['Rejecting message due to blacklisted ',
                                  'Newsgroup "%s" in distribution.' % ng]))
         sys.exit(0)
     
@@ -488,13 +469,13 @@ def msgparse(message):
     try:
         msg['Path'] = "%s!not-for-mail" % options.path
     except:
-        logger.error(long_string(['Cannot assign domain to Path header. ',
+        logging.error(long_string(['Cannot assign domain to Path header. ',
                                   'Unable to continue processing.']))
         sys.exit(1)
     try:
         msg['X-Abuse-Contact'] = config.abuse_contact
     except:
-        logger.warn(long_string(["We don't appear to have an abuse contact ",
+        logging.warn(long_string(["We don't appear to have an abuse contact ",
                                  "address. Without one, recipients of abuse ",
                                  "will be unhappy."]))
 
@@ -502,7 +483,7 @@ def msgparse(message):
     # them to pass the payload unchanged.
     if msg.is_multipart():
         #payload = msg.get_payload(decode=1)
-        logger.info('This is a multipart message.  Bypassing payload parsing.')
+        logging.info('This is a multipart message.  Bypassing payload parsing.')
     else:
         preparse_payload = msg.get_payload(decode=1)
         payload = body_parse(preparse_payload)
@@ -517,10 +498,10 @@ def msgparse(message):
     txt_msg = msg.as_string()
     size = len(txt_msg)
     if size > config.maxbytes:
-        logger.warn(long_string(['Message exceeds %d ' % config.maxbytes,
+        logging.warn(long_string(['Message exceeds %d ' % config.maxbytes,
                                  'size limit. Rejecting.']))
         sys.exit(1)
-    logger.debug('Message is %d bytes', size)
+    logging.debug('Message is %d bytes', size)
 
     return msg['Message-ID'], dest_server, txt_msg
 
@@ -529,7 +510,7 @@ def blacklist(header, list):
     for item in list:
         match = header.find(item)
         if match > 0:
-            logger.debug("From header " + header + " matches " + item)
+            logging.debug("From header " + header + " matches " + item)
             return item
     return False
 
@@ -541,7 +522,7 @@ def body_parse(body):
     for string in config.bin_body:
         body = body.replace(string, "")
     if oldbody <> body:
-        logger.info('Payload has been modified due to matching remove strings.')
+        logging.info('Payload has been modified due to matching remove strings.')
     return body
 
 def find_recipient(recipients):
@@ -551,9 +532,9 @@ def find_recipient(recipients):
     for recipient in recipients:
         if recipient:
             if recipient.startswith('mail2news'):
-                logger.debug('Selected recipient is %s', recipient)
+                logging.debug('Selected recipient is %s', recipient)
                 return recipient
-    logger.debug('Recipient is not mail2news. Returning an arbitrary value.')
+    logging.debug('Recipient is not mail2news. Returning an arbitrary value.')
     return 'foobar'
 
 def fromparse(fromhdr):
@@ -602,50 +583,50 @@ def newssend(mid, nntphosts, content):
     for host in nntphosts:
         method, port = nntphosts[host]
         payload = StringIO.StringIO(content)
-        logger.debug("Attempting delivery to %s", host)
+        logging.debug("Attempting delivery to %s", host)
         if method == 'ihave':
             try:
                 s = nntplib.NNTP(host, port)
-                logger.debug("IHAVE process connected to %s", host)
+                logging.debug("IHAVE process connected to %s", host)
             except socket.timeout:
-                logger.warn('Timeout during IHAVE conection to %s', host)
+                logging.warn('Timeout during IHAVE conection to %s', host)
                 continue
             except:
-                logger.error('Unknown error during IHAVE to %s', host)
+                logging.error('Unknown error during IHAVE to %s', host)
                 continue
 
             try:
                 s.ihave(mid, payload)
-                logger.info("%s successful IHAVE to %s." % (mid, host))
+                logging.info("%s successful IHAVE to %s." % (mid, host))
             except nntplib.NNTPTemporaryError:
-                logger.info("IHAVE to %s returned: %s", host, sys.exc_info()[1])
+                logging.info("IHAVE to %s returned: %s", host, sys.exc_info()[1])
             except nntplib.NNTPPermanentError:
-                logger.warn(long_string(['IHAVE to %s returned a ' % host,
+                logging.warn(long_string(['IHAVE to %s returned a ' % host,
                             'permanent error: %s' % sys.exc_info()[1]]))
             except:
-                logger.warn(long_string(['IHAVE to %s returned an ' % host,
+                logging.warn(long_string(['IHAVE to %s returned an ' % host,
                                 'unknown error: %s' % sys.exc_info()[1]]))
         else:
             try:
                 s = nntplib.NNTP(host, port, readermode=True)
-                logger.debug("POST process connected to %s", host)
+                logging.debug("POST process connected to %s", host)
             except socket.timeout:
-                logger.warn('Timeout during POST conection to %s', host)
+                logging.warn('Timeout during POST conection to %s', host)
                 continue
             except:
-                logger.error('Unknown error during POST to %s', host)
+                logging.error('Unknown error during POST to %s', host)
                 continue
 
             try:
                 s.post(payload)
-                logger.info("%s successful POST to %s." % (mid, host))
+                logging.info("%s successful POST to %s." % (mid, host))
             except nntplib.NNTPTemporaryError:
-                logger.info("POST to %s returned: %s", host, sys.exc_info()[1])
+                logging.info("POST to %s returned: %s", host, sys.exc_info()[1])
             except nntplib.NNTPPermanentError:
-                logger.warn(long_string(['POST to %s returned a ' % host,
+                logging.warn(long_string(['POST to %s returned a ' % host,
                             'permanent error: %s' % sys.exc_info()[1]]))
             except:
-                logger.warn(long_string(['POST to %s returned an ' % host,
+                logging.warn(long_string(['POST to %s returned an ' % host,
                                 'unknown error: %s' % sys.exc_info()[1]]))
 
 def main():
