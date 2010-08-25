@@ -472,12 +472,6 @@ def msgparse(message):
         logging.error(long_string(['Cannot assign domain to Path header. ',
                                   'Unable to continue processing.']))
         sys.exit(1)
-    try:
-        msg['X-Abuse-Contact'] = config.abuse_contact
-    except:
-        logging.warn(long_string(["We don't appear to have an abuse contact ",
-                                 "address. Without one, recipients of abuse ",
-                                 "will be unhappy."]))
 
     # The following section parses the message payload.  Remove
     # them to pass the payload unchanged.
@@ -492,7 +486,15 @@ def msgparse(message):
         # message.
         msg['Lines'] = str(payload.count("\n") + 1)
 
-    msg['Injection-Info'] = options.path
+    # Add an Injection-Info Header.
+    ii  = options.path + ';'
+    try:
+        ii += " mail-complaints-to=" + config.abuse_contact
+    except NameError:
+        logmes =  "We don't appear to have an abuse contact address. "
+        logmes += "Without one, recipients of abuse will be unhappy."
+        logging.warn(logmes)
+    msg['Injection-Info'] = ii
 
     # Convert message to a string and validate its size.
     txt_msg = msg.as_string()
