@@ -65,18 +65,12 @@ def init_parser():
     parser.add_option("--path", action = "store", type = "string",
                     dest = "path", default = config.path,
                     help = "Entry to use in Path header")
-    parser.add_option("--helo", action = "store", type = "string",
-                    dest = "helo",
-                    help = "HELO/EHLO from sender.")
     parser.add_option("--nohist", action = "store_true", dest = "nohist",
                     default = False,
                     help = "Don't store messages in a history file")
     parser.add_option("--subject", action = "store", type = "string",
                     dest = "subject",
                     help = "Override the message subject")
-    parser.add_option("--sender", action = "store", type = "string",
-                    dest = "sender",
-                    help = "Override the messages From header")
     return parser.parse_args()
 
 def long_string(loglist):
@@ -262,6 +256,19 @@ def messageid(rightpart):
     mid = '<' + leftpart + '@' + rightpart + '>'
     return mid
 
+def blacklist_check(bad_file, text):
+    """Take a filename and convert it to a list.  That list then becomes a
+    Regular Expression that we compare against the supplied string.  Usually
+    the string (text) will be a message header."""
+    filename = os.path.join(ETCPATH, bad_file)
+    bad_list = file2list(filename)
+    if bad_list:
+        bad_re = list2regex(bad_list)
+        hit = re.search(bad_re, text)
+        if hit:
+            return hit.group(0)
+    return False
+
 def msgparse(message):
     """This routine is the engine room of the whole program.  It parses the
     message and if all is well, spits it out in a text format ready for
@@ -301,15 +308,16 @@ def msgparse(message):
     else:
         logging.debug("Message not logged due to --nohist switch.")
 
-    # Check to see if the client HELO is blacklisted.  This only works if the
-    # HELO is passed by the MTA to the program.
-    if options.helo:
-        helo = blacklist(options.helo, config.poison_helo)
-        if helo:
-            logging.warn(long_string(['Message received from blacklisted relay ',
-                                     '%s.  Rejecting it.' % helo]))
-            sys.exit(0)
-
+    # Check for blacklisted From headers.
+    if 'From' in msg:
+        rc = blacklist_check('bad_from', msg['From'])
+        if rc:
+            logging.warn("From header matches \'%s\'. Rejecting." % rc)
+            sys.exit(1)
+    else:
+        logging.info("Message has no From header. Inserting a null one.")
+        msg['From'] = 'Unknown User <nobody@mixmin.net>'
+        
     # Check for poison headers in the message.  Any of these will result in the
     # message being rejected.
     for header in config.poison_headers:
@@ -364,24 +372,6 @@ def msgparse(message):
         logging.info("Message has no Date header. Inserting current timestamp.")
         msg['Date'] = formatdate()
 
-    # If the message doesn't have a From header, insert one.
-    if options.sender:
-    	logging.info("(Parameter) From: %s", options.sender)
-	msg['From'] = options.sender
-    elif 'From' in msg:
-        logging.info("From: %s", msg['From'])
-    else:
-        logging.info("Message has no From header. Inserting a null one.")
-        msg['From'] = 'Unknown User <nobody@mixmin.net>'
-
-    # Check for blacklisted From headers.
-    filename = os.path.join(ETCPATH, 'bad_from')
-    bad_from_list = file2list(filename)
-    bad_from_re = list2regex(bad_from_list)
-    hit = re.search(bad_from_re, msg['From'])
-    if hit:
-        logging.warn("From header matches \'%s\'. Rejecting.", hit.group(0))
-        sys.exit(1)
 
     # If we are in nospam mode, edit the From header and create an
     # Author-Supplied-Address header.

@@ -51,9 +51,6 @@ bin_body = ['-----BEGIN TYPE III ANONYMOUS MESSAGE-----\nMessage-type: plaintext
 # Test to append to each message in a comments header.
 comments = """Mail2News Gateway"""
 
-# Reject messages received from HELO's matching these strings.
-poison_helo = []
-
 # When validating a message sent to mail2news-yyyymmdd, how many hours in the
 # past and future are considered valid.
 hours_past = 48
