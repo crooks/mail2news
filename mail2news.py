@@ -30,10 +30,9 @@ import os.path
 import socket
 from email.Utils import formatdate
 import nntplib
-from optparse import OptionParser
 import hsub
 
-LOGLEVEL = 'debug'
+LOGLEVEL = 'info'
 HOMEDIR = os.path.expanduser('~')
 ETCPATH = os.path.join(HOMEDIR, 'python', 'etc')
 LOGPATH = os.path.join(HOMEDIR, 'python', 'log')
