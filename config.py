@@ -32,13 +32,6 @@ nntphosts['news-in.mixmin.net'] = ['^alt\.anonymous\.messages|^alt\.privacy\.ano
 nntphosts['news-in.glorb.com'] = ['^alt\.anonymous\.messages|^alt\.privacy\.anon-server', 'ihave']
 nntphosts['news2.arglkargh.de'] = ['^alt\.anonymous\.messages|^alt\.privacy\.anon-server', 'ihave']
 
-# The location of the logfile to write.  Can be overidden with --logfile switch.
-logpath = '/home/mail2news/python/log'
-histpath = '/home/mail2news/python/history'
-
-# The loglevel to use.  Can be overidden with --loglevel switch.
-loglevel = 'info'
-
 # Abuse contact to insert in X-Abuse-Contact.
 abuse_contact = 'abuse@mixmin.net'
 

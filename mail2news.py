@@ -37,6 +37,7 @@ LOGLEVEL = 'info'
 HOMEDIR = os.path.expanduser('~')
 ETCPATH = os.path.join(HOMEDIR, 'python', 'etc')
 LOGPATH = os.path.join(HOMEDIR, 'python', 'log')
+HISTPATH = os.path.join(HOMEDIR, 'python', 'history')
 
 def init_logging():
     """Initialise logging.  This should be the first thing done so that all
@@ -55,9 +56,6 @@ def init_parser():
     to do this after logging is initialised, but we need options in order to
     do that, so the egg must come before the chicken!"""
     parser = OptionParser()
-    parser.add_option("--histpath", action = "store", type = "string",
-                    dest = "histpath", default = config.histpath,
-                    help = "Location of history file")
     parser.add_option("-u", "--user", action = "store", type = "string",
                     dest = "user",
                     help = "Recipient of the message.")
@@ -286,19 +284,17 @@ def msgparse(message):
     # we have a means to see why messages succeeded or failed.  This is very
     # useful during testing, but can be run with a nohist switch in prod.
     if not options.nohist:
-        histpath = options.histpath.rstrip("/")
-        histfile = datestring()
-        filename = "%s/%s" % (histpath, histfile)
+        histfile = os.path.join(HISTPATH, datestring())
         try:
             if not os.path.isfile(filename):
-                hf = open(filename, 'w')
+                hf = open(histfile, 'w')
                 hf.close()
-                os.chmod(filename, 0644)
-                logging.debug('Created new history file: %s', filename)
+                os.chmod(histfile, 0644)
+                logging.debug('Created new history file: %s', histfile)
         except IOError:
             logging.error(long_string(['Unable to initialize history file.  ',
                                       'Check file permissions?']))
-        hist = open(filename, 'a')
+        hist = open(histfile, 'a')
         hist.write(message)
         hist.write('\n')
         hist.close()
