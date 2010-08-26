@@ -33,7 +33,7 @@ import nntplib
 from optparse import OptionParser
 import hsub
 
-LOGLEVEL = 'info'
+LOGLEVEL = 'debug'
 HOMEDIR = os.path.expanduser('~')
 ETCPATH = os.path.join(HOMEDIR, 'python', 'etc')
 LOGPATH = os.path.join(HOMEDIR, 'python', 'log')
@@ -56,9 +56,6 @@ def init_parser():
     to do this after logging is initialised, but we need options in order to
     do that, so the egg must come before the chicken!"""
     parser = OptionParser()
-    parser.add_option("-u", "--user", action = "store", type = "string",
-                    dest = "user",
-                    help = "Recipient of the message.")
     parser.add_option("-n", "--newsgroups", action = "store", type = "string",
                     dest = "newsgroups",
                     help = "Newsgroups to post the message in.")
@@ -274,26 +271,13 @@ def msgparse(message):
     message and if all is well, spits it out in a text format ready for
     posting."""
     
-    # Use the email library to create the msg object.
-    msg = email.message_from_string(message)
-
-    # Check to see if we have a Message-ID.  If not, one is assigned
-    # automatically.  This will generate a Warning as messages must have
-    # valid ID's to have reached the gateway at all.
-    if 'Message-ID' in msg:
-        logging.info('Processing message %s' % msg['Message-ID'])
-    else:
-        msg['Message-ID'] = messageid(options.path)
-        logging.warn(long_string(['Processing message with no Message-ID.  ',
-                                 'Assigning %s.' % msg['Message-ID']]))
-
     # Before anything else, lets write the message to a history file so that
     # we have a means to see why messages succeeded or failed.  This is very
     # useful during testing, but can be run with a nohist switch in prod.
     if not options.nohist:
         histfile = os.path.join(HISTPATH, datestring())
         try:
-            if not os.path.isfile(filename):
+            if not os.path.isfile(histfile):
                 hf = open(histfile, 'w')
                 hf.close()
                 os.chmod(histfile, 0644)
@@ -307,6 +291,19 @@ def msgparse(message):
         hist.close()
     else:
         logging.debug("Message not logged due to --nohist switch.")
+
+    # Use the email library to create the msg object.
+    msg = email.message_from_string(message)
+
+    # Check to see if we have a Message-ID.  If not, one is assigned
+    # automatically.  This will generate a Warning as messages must have
+    # valid ID's to have reached the gateway.
+    if 'Message-ID' in msg:
+        logging.info('Processing message %s' % msg['Message-ID'])
+    else:
+        msg['Message-ID'] = messageid(options.path)
+        logging.warn(long_string(['Processing message with no Message-ID.  ',
+                                 'Assigning %s.' % msg['Message-ID']]))
 
     # Check for blacklisted From headers.
     if 'From' in msg:
@@ -327,10 +324,17 @@ def msgparse(message):
             sys.exit(0)
 
     # In priority order (highest first) look for the recipient details in these
-    # headers or parameters.  Using To or Cc is nothing but a nasty last-ditch
-    # option and shouldn't be used.
-    recipients = [options.user, msg['X-original-To'], msg['To'], msg['Cc']]
-    recipient = find_recipient(recipients)
+    # headers or parameters.
+    if 'X-Original-To' in msg:
+        recipient = msg['X-Original-To']
+    elif 'To' in msg:
+        recipient = msg['To']
+    else:
+        recipient = 'mail2news@m2n.mixmin.net'
+        logging.warn('Could not find recipient info. Guessing %s.', recipient)
+    if not recipient.startswith('mail2news'):
+        logging.error('Recipient %s is not us.', recipient)
+        sys.exit(2)
 
     # Lets assume we're not running in NoSpam mode until something
     # proves we are.
@@ -518,18 +522,6 @@ def body_parse(body):
     if oldbody <> body:
         logging.info('Payload has been modified due to matching remove strings.')
     return body
-
-def find_recipient(recipients):
-    """Our recipient info could be supplied from a number of headers or passed
-    as an arguement.  We need to find the best-matching one using an order of
-    preference where first match is best."""
-    for recipient in recipients:
-        if recipient:
-            if recipient.startswith('mail2news'):
-                logging.debug('Selected recipient is %s', recipient)
-                return recipient
-    logging.debug('Recipient is not mail2news. Returning an arbitrary value.')
-    return 'foobar'
 
 def fromparse(fromhdr):
     """This does the good old mail2news_nospam processing to extract the name
