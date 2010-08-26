@@ -62,9 +62,6 @@ def init_parser():
     parser.add_option("--nohist", action = "store_true", dest = "nohist",
                     default = False,
                     help = "Don't store messages in a history file")
-    parser.add_option("--subject", action = "store", type = "string",
-                    dest = "subject",
-                    help = "Override the message subject")
     return parser.parse_args()
 
 def long_string(loglist):
@@ -341,7 +338,6 @@ def msgparse(message):
     # Lets assume we're not running in NoSpam mode until something
     # proves we are.
     nospam = False
-
     # Check for a Newsgroups header.  If there isn't one, then check for a
     # valid recipient in the correct format and with a valid timestamp.
     if 'Newsgroups' in msg:
@@ -363,11 +359,14 @@ def msgparse(message):
             logmes += "Rejecting message."
             logging.warn(logmes)
             sys.exit(0)
-
     # Clean the newsgroups list by checking that each element seperated by ','
     # are in an accepted newsgroup format.
     groups, msg['Newsgroups'] = ngvalidate(dest)
-
+    # Check for blacklisted Newsgroups.
+    rc = blacklist_check('bad_groups', msg['Newsgroups'])
+    if rc:
+        logging.warn("Newsgroups header matches \'%s\'. Rejecting." % rc)
+        sys.exit(1)
 
     # If we are in nospam mode, edit the From header and create an
     # Author-Supplied-Address header.
@@ -389,11 +388,8 @@ def msgparse(message):
         msg['Subject'] = hash_subject.hash(msg['X-Hash-Subject'])
         del msg['X-Hash-Subject']
     # If not hashing the Subject, just check if we have one.
-    elif options.subject:
-        logging.info("(Parameter) Subject: %s", options.subject)
-        msg['Subject'] = options.subject
     elif 'Subject' in msg:
-        logging.info("Subject: %s", msg['Subject'])
+        logging.info("Subject: " + msg['Subject'])
     else:
         logging.info("Message has no Subject header. Inserting a null one.")
         msg['Subject'] = 'None'
