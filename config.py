@@ -4,7 +4,7 @@
 #
 # m2n.py -- This is the config file for the mail2news script
 #
-# Copyright (C) 2008 Steve Crook <steve@mixmin.net>
+# Copyright (C) 2006 Steve Crook <steve@mixmin.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by the
@@ -29,10 +29,12 @@ timeout = 10
 nntphosts = {}
 nntphosts['localhost'] = ['.*', 'ihave']
 nntphosts['news-in.mixmin.net'] = ['^alt\.anonymous\.messages|^alt\.privacy\.anon-server|^local\.|\.test', 'ihave']
+nntphosts['news-in.glorb.com'] = ['^alt\.anonymous\.messages|^alt\.privacy\.anon-server', 'ihave']
+nntphosts['news2.arglkargh.de'] = ['^alt\.anonymous\.messages|^alt\.privacy\.anon-server', 'ihave']
 
 # The location of the logfile to write.  Can be overidden with --logfile switch.
-logpath = '/crypt/home/crooks/mail2news'
-histpath = '/crypt/home/crooks/mail2news'
+logpath = '/home/mail2news/python/log'
+histpath = '/home/mail2news/python/history'
 
 # The loglevel to use.  Can be overidden with --loglevel switch.
 loglevel = 'info'
@@ -53,6 +55,9 @@ poison_headers = ['Control']
 bin_body = ['-----BEGIN TYPE III ANONYMOUS MESSAGE-----\nMessage-type: plaintext\n\n',
 '-----END TYPE III ANONYMOUS MESSAGE-----\n']
 
+# Test to append to each message in a comments header.
+comments = """Mail2News Gateway"""
+
 # Reject messages received from HELO's matching these strings.
 poison_helo = []
 
@@ -69,13 +74,4 @@ maxbytes = 200000
 
 # Reject messages containing this string in the Newsgroups header.
 # Note: This doesn't have to be an entire newsgroup, just a string match.
-poison_newsgroups = []
-
-# Reject messages with this string in the From header.
-poison_from = []
-
-#### Moderated Processing ####
-# This section relates to paramters specific to handling moderated groups
-active_url = "http://ftp.isc.org/usenet/CONFIG/active.bz2"
-active_bz2_file = "/tmp/active.bz2"
-moderated_shelve = "/tmp/active.shelve"
+poison_newsgroups = ['soc.culture.russian']

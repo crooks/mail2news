@@ -380,13 +380,12 @@ def msgparse(message):
 
     # Check for blacklisted From headers.
     filename = os.path.join(ETCPATH, 'bad_from')
-    bad_froms = file2list(filename)
-    froms = msg['From'].split(',')
-    for f in froms:
-        fr = f.strip()
-        if blacklist(fr, bad_froms):
-            logging.warn("Rejecting due to blacklisted From \'%s\'", fr)
-            sys.exit(1)
+    bad_from_list = file2list(filename)
+    bad_from_re = list2regex(bad_from_list)
+    hit = re.search(bad_from_re, msg['From'])
+    if hit:
+        logging.warn("From header matches \'%s\'. Rejecting.", hit.group(0))
+        sys.exit(1)
 
     # If we are in nospam mode, edit the From header and create an
     # Author-Supplied-Address header.
@@ -515,6 +514,13 @@ def blacklist(header, list):
             logging.debug("From header " + header + " matches " + item)
             return item
     return False
+
+def list2regex(l):
+    "Convert a list to a Regular Expression"
+    txtregex = "|".join(l)
+    # Make sure we have no double ORs
+    txtregex = re.sub('\|{2,}', '|', txtregex)
+    return re.compile(txtregex)
 
 def body_parse(body):
     """Parse the message body and replace selected strings. This isn't
