@@ -56,9 +56,6 @@ def init_parser():
     to do this after logging is initialised, but we need options in order to
     do that, so the egg must come before the chicken!"""
     parser = OptionParser()
-    parser.add_option("-n", "--newsgroups", action = "store", type = "string",
-                    dest = "newsgroups",
-                    help = "Newsgroups to post the message in.")
     parser.add_option("--path", action = "store", type = "string",
                     dest = "path", default = config.path,
                     help = "Entry to use in Path header")
@@ -305,6 +302,11 @@ def msgparse(message):
         logging.warn(long_string(['Processing message with no Message-ID.  ',
                                  'Assigning %s.' % msg['Message-ID']]))
 
+    # If the message doesn't have a Date header, insert one.
+    if not 'Date' in msg:
+        logging.info("Message has no Date header. Inserting current timestamp.")
+        msg['Date'] = formatdate()
+
     # Check for blacklisted From headers.
     if 'From' in msg:
         rc = blacklist_check('bad_from', msg['From'])
@@ -342,39 +344,29 @@ def msgparse(message):
 
     # Check for a Newsgroups header.  If there isn't one, then check for a
     # valid recipient in the correct format and with a valid timestamp.
-    if options.newsgroups:
-        dest = options.newsgroups
-        logging.debug("Newsgroups passed as arguement: %s", dest)
-        if 'Newsgroups' in msg:
-            logging.info(long_string(['Newsgroups header overridden by ',
-                                     '--newsgroups arguement']))
-
-    elif 'Newsgroups' in msg:
+    if 'Newsgroups' in msg:
         dest = msg['Newsgroups']
         del msg['Newsgroups']
         logging.debug('Message has a Newsgroups header of %s', dest)
         if recipient.startswith('mail2news_nospam'):
             nospam = True
-            logging.info(long_string(['Message includes a nospam directive. ',
-                                     'Will munge headers accoringly.']))
+            logmes  = "Message includes a nospam directive. "
+            logmes += "Will munge From headers accordingly."
+            logging.info(logmes)
     else:
-        logging.info(long_string(['No Newsgroups header, trying to parse ',
-                                 'recipient information']))
+        logmes = "No Newsgroups header, trying to parse recipient information"
+        logging.info(logmes)
         (stamp, dest, nospam) = parse_recipient(recipient)
         # Check to see if the timestamp extracted from the recipient is valid.
         if not validate_stamp(stamp):
-            logging.warn(long_string(['No Newsgroups header or valid ',
-                                     'recipient. Rejecting message.']))
+            logmes  = "No Newsgroups header or valid recipient. "
+            logmes += "Rejecting message."
+            logging.warn(logmes)
             sys.exit(0)
 
     # Clean the newsgroups list by checking that each element seperated by ','
     # are in an accepted newsgroup format.
     groups, msg['Newsgroups'] = ngvalidate(dest)
-
-    # If the message doesn't have a Date header, insert one.
-    if not 'Date' in msg:
-        logging.info("Message has no Date header. Inserting current timestamp.")
-        msg['Date'] = formatdate()
 
 
     # If we are in nospam mode, edit the From header and create an
