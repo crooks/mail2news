@@ -61,7 +61,3 @@ maxcrossposts = 3
 
 # Maximum number of bytes in a message
 maxbytes = 200000
-
-# Reject messages containing this string in the Newsgroups header.
-# Note: This doesn't have to be an entire newsgroup, just a string match.
-poison_newsgroups = ['soc.culture.russian']

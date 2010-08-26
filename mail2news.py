@@ -51,19 +51,6 @@ def init_logging():
         format = '%(asctime)s %(process)d %(levelname)s %(message)s',
         datefmt = '%Y-%m-%d %H:%M:%S')
 
-def init_parser():
-    """Initialise the the Options Parser and read options.  It would be nice
-    to do this after logging is initialised, but we need options in order to
-    do that, so the egg must come before the chicken!"""
-    parser = OptionParser()
-    parser.add_option("--path", action = "store", type = "string",
-                    dest = "path", default = config.path,
-                    help = "Entry to use in Path header")
-    parser.add_option("--nohist", action = "store_true", dest = "nohist",
-                    default = False,
-                    help = "Don't store messages in a history file")
-    return parser.parse_args()
-
 def long_string(loglist):
     """Concatenate strings and return a single long string."""
     logmessage = ""
@@ -266,25 +253,21 @@ def msgparse(message):
     posting."""
     
     # Before anything else, lets write the message to a history file so that
-    # we have a means to see why messages succeeded or failed.  This is very
-    # useful during testing, but can be run with a nohist switch in prod.
-    if not options.nohist:
-        histfile = os.path.join(HISTPATH, datestring())
-        try:
-            if not os.path.isfile(histfile):
-                hf = open(histfile, 'w')
-                hf.close()
-                os.chmod(histfile, 0644)
-                logging.debug('Created new history file: %s', histfile)
-        except IOError:
-            logging.error(long_string(['Unable to initialize history file.  ',
-                                      'Check file permissions?']))
+    # we have a means to see why messages succeeded or failed.
+    histfile = os.path.join(HISTPATH, datestring())
+    try:
+        if not os.path.isfile(histfile):
+            hf = open(histfile, 'w')
+            hf.close()
+            os.chmod(histfile, 0644)
+            logging.debug('Created new history file: %s', histfile)
+    except IOError:
+        logmes = 'Unable to initialize history file. Check file permissions?'
+        logging.error(logmes)
         hist = open(histfile, 'a')
         hist.write(message)
         hist.write('\n')
         hist.close()
-    else:
-        logging.debug("Message not logged due to --nohist switch.")
 
     # Use the email library to create the msg object.
     msg = email.message_from_string(message)
@@ -293,11 +276,12 @@ def msgparse(message):
     # automatically.  This will generate a Warning as messages must have
     # valid ID's to have reached the gateway.
     if 'Message-ID' in msg:
-        logging.info('Processing message %s' % msg['Message-ID'])
+        logging.info('Processing message: ' + msg['Message-ID'])
     else:
-        msg['Message-ID'] = messageid(options.path)
-        logging.warn(long_string(['Processing message with no Message-ID.  ',
-                                 'Assigning %s.' % msg['Message-ID']]))
+        msg['Message-ID'] = messageid(config.path)
+        logmes =  "Processing message with no Message-ID. "
+        logmes += "Assigned: " + msg['Message-ID'] + "."
+        logging.warn(logmes)
 
     # If the message doesn't have a Date header, insert one.
     if not 'Date' in msg:
@@ -444,7 +428,7 @@ def msgparse(message):
 
     # Add additional headers relating to the mail2news gateway.
     try:
-        msg['Path'] = "%s!not-for-mail" % options.path
+        msg['Path'] = config.path + "!not-for-mail"
     except:
         logging.error(long_string(['Cannot assign domain to Path header. ',
                                   'Unable to continue processing.']))
@@ -464,7 +448,7 @@ def msgparse(message):
         msg['Lines'] = str(payload.count("\n") + 1)
 
     # Add an Injection-Info Header.
-    ii  = options.path + ';'
+    ii  = config.path + ';'
     try:
         ii += " mail-complaints-to=" + config.abuse_contact
     except NameError:
@@ -604,10 +588,6 @@ def newssend(mid, nntphosts, content):
                                 'unknown error: %s' % sys.exc_info()[1]]))
 
 def main():
-    """Initialize the options parser and logging functions, then process
-    messages piped to stdin."""
-    global options
-    (options, args) = init_parser()
     init_logging()
     sys.stdout.write("Type message here.  Finish with Ctrl-D.\n")
     (mid, dest_server, payload) = msgparse(sys.stdin.read())
