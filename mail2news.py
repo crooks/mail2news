@@ -208,7 +208,7 @@ def datestring():
     """As per middate but only return the date element of UTC.  This is used
     for generating log and history files."""
     utctime = datetime.datetime.utcnow()
-    utcstamp = utctime.strftime("%Y-%m-%d")
+    utcstamp = utctime.strftime("%Y%m%d")
     return utcstamp
 
 def midrand(numchars):
@@ -254,19 +254,10 @@ def msgparse(message):
     # Before anything else, lets write the message to a history file so that
     # we have a means to see why messages succeeded or failed.
     histfile = os.path.join(HISTPATH, datestring())
-    try:
-        if not os.path.isfile(histfile):
-            hf = open(histfile, 'w')
-            hf.close()
-            os.chmod(histfile, 0644)
-            logging.debug('Created new history file: %s', histfile)
-    except IOError:
-        logmes = 'Unable to initialize history file. Check file permissions?'
-        logging.error(logmes)
-        hist = open(histfile, 'a')
-        hist.write(message)
-        hist.write('\n')
-        hist.close()
+    hist = open(histfile, 'a')
+    hist.write('From foo@bar Thu Jan  1 00:00:01 1970\n')
+    hist.write(message + '\n\n')
+    hist.close()
 
     # Use the email library to create the msg object.
     msg = email.message_from_string(message)
