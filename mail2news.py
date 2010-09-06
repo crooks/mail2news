@@ -400,18 +400,6 @@ def msgparse(message):
         # nntphosts dictionary.
         dest_server = extract_posting_hosts(config.nntphosts, groups)
 
-
-    # Check for blacklisted Newsgroups
-    ng = False
-    try:
-        ng = blacklist(msg['Newsgroups'], config.poison_newsgroups)
-    except AttributeError:
-        logging.info("Configuration doesn't contain poison_newsgroups")
-    if ng:
-        logging.warn(long_string(['Rejecting message due to blacklisted ',
-                                 'Newsgroup "%s" in distribution.' % ng]))
-        sys.exit(0)
-    
     # Look for headers to remove from the message.
     for header in config.bin_headers:
         del msg[header]
@@ -457,15 +445,6 @@ def msgparse(message):
     logging.debug('Message is %d bytes', size)
 
     return msg['Message-ID'], dest_server, txt_msg
-
-def blacklist(header, list):
-    """Check for headers that contain a blacklisted string."""
-    for item in list:
-        match = header.find(item)
-        if match > 0:
-            logging.debug("From header " + header + " matches " + item)
-            return item
-    return False
 
 def list2regex(l):
     "Convert a list to a Regular Expression"
