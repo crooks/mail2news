@@ -49,6 +49,11 @@ def init_logging():
         level = loglevels[LOGLEVEL],
         format = '%(asctime)s %(process)d %(levelname)s %(message)s',
         datefmt = '%Y-%m-%d %H:%M:%S')
+    if not os.path.exists(logfile):
+        lf = open(logfile, 'w')
+        lf.close()
+        os.chmod(logfile, 0644)
+        logger.debug('Created new logfile %s', logfile)
 
 def long_string(loglist):
     """Concatenate strings and return a single long string."""
