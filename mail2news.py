@@ -27,6 +27,7 @@ import StringIO
 import sys
 import logging
 import os.path
+from os import chmod
 import socket
 from email.Utils import formatdate
 import nntplib
@@ -52,7 +53,7 @@ def init_logging():
     if not os.path.exists(logfile):
         lf = open(logfile, 'w')
         lf.close()
-        os.chmod(logfile, 0644)
+        chmod(logfile, 0644)
         logger.debug('Created new logfile %s', logfile)
 
 def long_string(loglist):
@@ -455,7 +456,7 @@ def list2regex(l):
     "Convert a list to a Regular Expression"
     txtregex = "|".join(l)
     # Make sure we have no double ORs
-    txtregex = re.sub('\|{2,}', '|', txtregex)
+    txtregex = re.sub('\|\|+', '|', txtregex)
     return re.compile(txtregex)
 
 def body_parse(body):
