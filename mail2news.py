@@ -27,6 +27,7 @@ import StringIO
 import sys
 import logging
 import os.path
+import shelve
 from os import chmod
 import socket
 from email.Utils import formatdate
@@ -35,9 +36,10 @@ import hsub
 
 LOGLEVEL = 'info'
 HOMEDIR = os.path.expanduser('~')
-ETCPATH = os.path.join(HOMEDIR, 'python', 'etc')
-LOGPATH = os.path.join(HOMEDIR, 'python', 'log')
-HISTPATH = os.path.join(HOMEDIR, 'python', 'history')
+ETCPATH = os.path.join(HOMEDIR, 'etc')
+LOGPATH = os.path.join(HOMEDIR, 'log')
+HISTPATH = os.path.join(HOMEDIR, 'history')
+MODFILE = os.path.join(HOMEDIR, 'db', 'moderated.db')
 
 def init_logging():
     """Initialise logging.  This should be the first thing done so that all
@@ -45,16 +47,15 @@ def init_logging():
     loglevels = {'debug': logging.DEBUG, 'info': logging.INFO,
                 'warn': logging.WARN, 'error': logging.ERROR}
     logfile = os.path.join(LOGPATH, datestring())
+    if not os.path.exists(logfile):
+        lf = open(logfile, 'w')
+        lf.close()
+        chmod(logfile, 0644)
     logging.basicConfig(
         filename=logfile,
         level = loglevels[LOGLEVEL],
         format = '%(asctime)s %(process)d %(levelname)s %(message)s',
         datefmt = '%Y-%m-%d %H:%M:%S')
-    if not os.path.exists(logfile):
-        lf = open(logfile, 'w')
-        lf.close()
-        chmod(logfile, 0644)
-        logger.debug('Created new logfile %s', logfile)
 
 def long_string(loglist):
     """Concatenate strings and return a single long string."""
@@ -129,19 +130,26 @@ def ngvalidate(newsgroups):
     newsgroups = newsgroups.rstrip(",")
     groups = newsgroups.split(',')
     goodng = [] # This will become a list of good newsgroups
-
+    mod = shelve.open(MODFILE, flag='r') # Open moderated groups shelve.
     # Check each group is correctly formatted.  Drop those that aren't.
     for ng in groups:
         ng = ng.strip() # Strip whitespaces
         fmtchk = re.match('[a-z]+(\.[0-9a-z-+_]+)+$', ng)
         if fmtchk:
             if ng in goodng:
-                logging.info(long_string(['Duplicate newsgroup entry of ',
-                                         '%s. Dropping one.' % ng]))
+                logmes = ng + 'is duplicated in Newsgroups header.'
+                logmes += ' Dropping one instance of it.'
+                logging.info(logmes)
+            # Weed out Moderated groups.
+            elif ng in mod:
+                logmes = ng + ' is Moderated.'
+                logmes += ' Dropping it from Newsgroups header.'
+                logging.info(logmes)
             else:
                 goodng.append(ng)
         else:
             logging.info("%s is not a validated newsgroup, ignoring.", ng)
+    mod.close() # Close moderated shelve, its work is done.
 
     # No point proceeding if there are no valid Newsgroups.
     if len(goodng) < 1:
