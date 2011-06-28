@@ -32,7 +32,6 @@ from os import chmod
 import socket
 from email.Utils import formatdate
 import nntplib
-import hsub
 
 LOGLEVEL = 'info'
 HOMEDIR = os.path.expanduser('~')
@@ -366,17 +365,8 @@ def msgparse(message):
             msg['Author-Supplied-Address'] = addy
             msg['From'] = name + '<Use-Author-Supplied-Address-Header@[127.1]>'
 
-    # If the message has an X-Hash-Subject header then use hSub to Hash the
-    # Subject header.
-    if 'X-Hash-Subject' in msg:
-        logging.info("Message has an X-Hash-Subject header.")
-        hash_subject = hsub.hsub()
-        if 'Subject' in msg:
-            del msg['Subject']
-        msg['Subject'] = hash_subject.hash(msg['X-Hash-Subject'])
-        del msg['X-Hash-Subject']
-    # If not hashing the Subject, just check if we have one.
-    elif 'Subject' in msg:
+    # Insert a blank subject if we don't have one
+    if 'Subject' in msg:
         logging.info("Subject: " + msg['Subject'])
     else:
         logging.info("Message has no Subject header. Inserting a null one.")
