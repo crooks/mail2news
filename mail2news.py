@@ -56,6 +56,18 @@ def init_logging():
         format = '%(asctime)s %(process)d %(levelname)s %(message)s',
         datefmt = '%Y-%m-%d %H:%M:%S')
 
+def file2list(filename):
+    """Read a file and return each line as a list item."""
+    items = []
+    if os.path.isfile(filename):
+        readlist = open(filename, 'r')
+        for line in readlist:
+            entry = line.split('#', 1)[0].rstrip()
+            if entry:
+                items.append(entry)
+        readlist.close()
+    return items
+
 def long_string(loglist):
     """Concatenate strings and return a single long string."""
     logmessage = ""
@@ -303,11 +315,15 @@ def msgparse(message):
         
     # Check for poison headers in the message.  Any of these will result in the
     # message being rejected.
-    for header in config.poison_headers:
-        if header in msg:
-            logging.warn(long_string(['Message contains a blacklisted ',
-                                     '%s header. Rejecting it.' % header]))
-            sys.exit(0)
+    poisonfile = os.path.join(config.get('paths', 'etc'), 'headers_poison')
+    if os.path.isfile(stripfile):
+        for header in file2list(poisonfile):
+            if header in msg:
+                logging.warn("Message contains a blacklisted %s header. "
+                             "Rejecting it." % header)
+                sys.exit(0)
+    else:
+        logging.warn("No headers_poison file.")
 
     # In priority order (highest first) look for the recipient details in these
     # headers or parameters.
@@ -405,8 +421,12 @@ def msgparse(message):
         dest_server = extract_posting_hosts(config.nntphosts, groups)
 
     # Look for headers to remove from the message.
-    for header in config.bin_headers:
-        del msg[header]
+    stripfile = os.path.join(config.get('paths', 'etc'), 'headers_strip')
+    if os.path.isfile(stripfile):
+        for header in file2list(stripfile):
+            del msg[header]
+    else:
+        logging.warn("No headers_strip file.  Not removing any headers.")
 
     # Add additional headers relating to the mail2news gateway.
     msg['Path'] = config.get('nntp', 'path_header')
