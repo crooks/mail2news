@@ -93,6 +93,10 @@ if not config.has_option('paths', 'log'):
     config.set('paths', 'log', os.path.join(basedir, 'log'))
 makedir(config.get('paths', 'log'))
 
+if not config.has_option('paths', 'lib'):
+    config.set('paths', 'lib', os.path.join(basedir, 'lib'))
+makedir(config.get('paths', 'lib'))
+
 if not config.has_option('paths', 'history'):
     config.set('paths', 'history', os.path.join(basedir, 'history'))
 makedir(config.get('paths', 'history'))

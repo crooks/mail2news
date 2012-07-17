@@ -48,7 +48,7 @@ def init_logging():
                 'warn': logging.WARN, 'error': logging.ERROR}
     logging.getLogger().setLevel(logging.DEBUG)
     logfile = logging.handlers.TimedRotatingFileHandler(
-                    os.path.join(config.get('paths', 'log'), 'nymserv.log'),
+                    os.path.join(config.get('paths', 'log'), 'mail2news.log'),
                     when='midnight',
                     interval=1,
                     backupCount=config.getint('logging', 'retain'),
@@ -142,7 +142,11 @@ def ngvalidate(newsgroups):
     newsgroups = newsgroups.rstrip(",")
     groups = newsgroups.split(',')
     goodng = [] # This will become a list of good newsgroups
-    mod = shelve.open(MODFILE, flag='r') # Open moderated groups shelve.
+    do_moderation = False
+    modfile = os.path.join(config.get('paths', 'lib'), 'moderated.db')
+    if os.path.isfile(modfile):
+        mod = shelve.open(MODFILE, flag='r') # Open moderated groups shelve.
+        do_moderation = True
     # Check each group is correctly formatted.  Drop those that aren't.
     for ng in groups:
         ng = ng.strip() # Strip whitespaces
@@ -153,7 +157,7 @@ def ngvalidate(newsgroups):
                 logmes += ' Dropping one instance of it.'
                 logging.info(logmes)
             # Weed out Moderated groups.
-            elif ng in mod:
+            elif do_moderation and ng in mod:
                 logmes = ng + ' is Moderated.'
                 logmes += ' Dropping it from Newsgroups header.'
                 logging.info(logmes)
@@ -161,7 +165,8 @@ def ngvalidate(newsgroups):
                 goodng.append(ng)
         else:
             logging.info("%s is not a validated newsgroup, ignoring.", ng)
-    mod.close() # Close moderated shelve, its work is done.
+    if do_moderation:
+        mod.close() # Close moderated shelve, its work is done.
 
     # No point proceeding if there are no valid Newsgroups.
     if len(goodng) < 1:
