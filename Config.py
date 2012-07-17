@@ -75,7 +75,7 @@ if os.path.isfile(configfile):
     config.read(configfile)
 else:
     sys.stdout.write("%s: Config file does not exist\n" % configfile)
-    #sys.exit(1)
+    sys.exit(1)
 
 # Now we check the directory structure exists and is valid.
 if config.has_option('paths', 'basedir'):

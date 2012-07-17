@@ -370,6 +370,7 @@ def msgparse(message):
     msg['Injection-Info'] = (config.get('nntp', 'injection_host') +
                              '; mail-complaints-to=' +
                              config.get('nntp', 'contact'))
+    logging.debug("Injection-Info: %s" % msg['Injection-Info'])
 
     # Convert message to a string and validate its size.
     txt_msg = msg.as_string()
@@ -437,66 +438,45 @@ def file2list(filename):
                 items.append(entry)
     return items
 
-def newssend(mid, nntphosts, content):
+def newssend(mid, content):
     """Time to send the message using either IHAVE or POST for each defined
     recipient of the message.  We also do a crude size check."""
     # Socket timeout prevents processes hanging forever if an NNTP server is
     # unreachable.
     socket.setdefaulttimeout(config.getint('thresholds', 'socket_timeout'))
-    for host in nntphosts:
-        method, port = nntphosts[host]
+    hostfile = os.path.join(config.get('paths', 'etc'), 'nntphosts')
+    if not os.path.isfile(hostfile):
+        logging.error("No nntphosts specified in %s" % hostfile)
+    for host in file2list(hostfile):
         payload = StringIO.StringIO(content)
         logging.debug("Attempting delivery to %s", host)
-        if method == 'ihave':
-            try:
-                s = nntplib.NNTP(host, port)
-                logging.debug("IHAVE process connected to %s", host)
-            except socket.timeout:
-                logging.warn('Timeout during IHAVE conection to %s', host)
-                continue
-            except:
-                logging.error('Unknown error during IHAVE to %s', host)
-                continue
+        try:
+            s = nntplib.NNTP(host, 119)
+            logging.debug("IHAVE process connected to %s", host)
+        except socket.timeout:
+            logging.warn('Timeout during IHAVE conection to %s', host)
+            continue
+        except:
+            logging.error('Unknown error during IHAVE to %s', host)
+            continue
 
-            try:
-                s.ihave(mid, payload)
-                logging.info("%s successful IHAVE to %s." % (mid, host))
-            except nntplib.NNTPTemporaryError:
-                logging.info("IHAVE to %s returned: %s", host, sys.exc_info()[1])
-            except nntplib.NNTPPermanentError:
-                logging.warn(long_string(['IHAVE to %s returned a ' % host,
-                            'permanent error: %s' % sys.exc_info()[1]]))
-            except:
-                logging.warn(long_string(['IHAVE to %s returned an ' % host,
-                                'unknown error: %s' % sys.exc_info()[1]]))
-        else:
-            try:
-                s = nntplib.NNTP(host, port, readermode=True)
-                logging.debug("POST process connected to %s", host)
-            except socket.timeout:
-                logging.warn('Timeout during POST conection to %s', host)
-                continue
-            except:
-                logging.error('Unknown error during POST to %s', host)
-                continue
-
-            try:
-                s.post(payload)
-                logging.info("%s successful POST to %s." % (mid, host))
-            except nntplib.NNTPTemporaryError:
-                logging.info("POST to %s returned: %s", host, sys.exc_info()[1])
-            except nntplib.NNTPPermanentError:
-                logging.warn(long_string(['POST to %s returned a ' % host,
-                            'permanent error: %s' % sys.exc_info()[1]]))
-            except:
-                logging.warn(long_string(['POST to %s returned an ' % host,
-                                'unknown error: %s' % sys.exc_info()[1]]))
+        try:
+            s.ihave(mid, payload)
+            logging.info("%s successful IHAVE to %s." % (mid, host))
+        except nntplib.NNTPTemporaryError:
+            logging.info("IHAVE to %s returned: %s", host, sys.exc_info()[1])
+        except nntplib.NNTPPermanentError:
+            logging.warn(long_string(['IHAVE to %s returned a ' % host,
+                        'permanent error: %s' % sys.exc_info()[1]]))
+        except:
+            logging.warn(long_string(['IHAVE to %s returned an ' % host,
+                            'unknown error: %s' % sys.exc_info()[1]]))
 
 def main():
     init_logging()
     sys.stdout.write("Type message here.  Finish with Ctrl-D.\n")
-    (mid, dest_server, payload) = msgparse(sys.stdin.read())
-    newssend(mid, dest_server, payload)
+    (mid, payload) = msgparse(sys.stdin.read())
+    newssend(mid, payload)
 
 # Call main function.
 if (__name__ == "__main__"):
