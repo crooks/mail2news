@@ -98,9 +98,9 @@ def validate_stamp(stamp):
     a valid timestamp and falls within acceptable time boundaries."""
     # Get timestamps for hours before and ahead of current UTC
     beforetime = datetime.datetime.utcnow() - \
-      datetime.timedelta(hours=config.hours_past)
+      datetime.timedelta(hours=config.getint('thresholds', 'hours_past'))
     aftertime = datetime.datetime.utcnow() + \
-      datetime.timedelta(hours=config.hours_future)
+      datetime.timedelta(hours=config.getint('thresholds', 'hours_future'))
     # Extract elements of the date stamp.
     year = int(stamp[0:4])
     month = int(stamp[4:6])
@@ -163,10 +163,11 @@ def ngvalidate(newsgroups):
     logging.info("Validated Newsgroups header is: %s", header)
 
     # Check crosspost limit
-    if len(goodng) > config.maxcrossposts:
-        logging.warn(long_string(['Message contains %d ' % len(goodng),
-                                 'newsgroups, exceeding crosspost limit of ',
-                                 '%d. Rejecting' % config.maxcrossposts]))
+    if len(goodng) > config.getint('thresholds', 'max_crossposts'):
+        logging.warn("Message contains %s newsgroups, exceeding crosspost "
+                     "limit of %s.  Rejecting."
+                     % (len(goodng),
+                        config.getint('thresholds', 'max_crossposts')))
         sys.exit(0)
     # We return a list of good newsgroups, and a full comma-seperated header.
     return goodng, header
@@ -281,10 +282,9 @@ def msgparse(message):
     if 'Message-ID' in msg:
         logging.info('Processing message: ' + msg['Message-ID'])
     else:
-        msg['Message-ID'] = messageid(config.path)
-        logmes =  "Processing message with no Message-ID. "
-        logmes += "Assigned: " + msg['Message-ID'] + "."
-        logging.warn(logmes)
+        msg['Message-ID'] = messageid(config.get('nntp', 'messageid'))
+        logging.warn("Processing message with no Message-ID. Assigned: %s."
+                     % msg['Message-ID'])
 
     # If the message doesn't have a Date header, insert one.
     if not 'Date' in msg:
@@ -409,12 +409,7 @@ def msgparse(message):
         del msg[header]
 
     # Add additional headers relating to the mail2news gateway.
-    try:
-        msg['Path'] = config.path + "!not-for-mail"
-    except:
-        logging.error(long_string(['Cannot assign domain to Path header. ',
-                                  'Unable to continue processing.']))
-        sys.exit(1)
+    msg['Path'] = config.get('nntp', 'path_header')
 
     # The following section parses the message payload.  Remove
     # them to pass the payload unchanged.
@@ -430,23 +425,18 @@ def msgparse(message):
         msg['Lines'] = str(payload.count("\n") + 1)
 
     # Add an Injection-Info Header.
-    ii  = config.path + ';'
-    try:
-        ii += " mail-complaints-to=" + config.abuse_contact
-    except NameError:
-        logmes =  "We don't appear to have an abuse contact address. "
-        logmes += "Without one, recipients of abuse will be unhappy."
-        logging.warn(logmes)
-    msg['Injection-Info'] = ii
+    msg['Injection-Info'] = (config.get('nntp', 'injection_host') + '; '
+                             'mail-complaints-to='
+                             config.get('nntp', 'contact'))
 
     # Convert message to a string and validate its size.
     txt_msg = msg.as_string()
     size = len(txt_msg)
-    if size > config.maxbytes:
-        logging.warn(long_string(['Message exceeds %d ' % config.maxbytes,
-                                 'size limit. Rejecting.']))
+    if size > config.getint('thresholds', 'max_bytes':
+        logging.warn('Message exceeds %s size limit. Rejecting.'
+                     % config.get('thresholds', 'max_bytes')
         sys.exit(1)
-    logging.debug('Message is %d bytes', size)
+    logging.debug('Message is %s bytes', size)
 
     return msg['Message-ID'], dest_server, txt_msg
 
@@ -510,7 +500,7 @@ def newssend(mid, nntphosts, content):
     recipient of the message.  We also do a crude size check."""
     # Socket timeout prevents processes hanging forever if an NNTP server is
     # unreachable.
-    socket.setdefaulttimeout(config.timeout)
+    socket.setdefaulttimeout(config.getint('thresholds', 'socket_timeout'))
     for host in nntphosts:
         method, port = nntphosts[host]
         payload = StringIO.StringIO(content)
