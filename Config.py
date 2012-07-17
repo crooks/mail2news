@@ -31,12 +31,12 @@ def makedir(d):
     if not os.path.isdir(d):
         parent = os.path.dirname(d)
         if os.path.isdir(parent):
-            #os.mkdir(d, 0700)
+            os.mkdir(d, 0700)
             sys.stdout.write("%s: Directory created.\n" % d)
         else:
             msg = "%s: Unable to make directory. Aborting.\n" % d
             sys.stdout.write(msg)
-            #sys.exit(1)
+            sys.exit(1)
 
 
 # Configure the Config Parser.

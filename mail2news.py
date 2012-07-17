@@ -18,7 +18,7 @@
 # or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 # for more details.
 
-import config
+from Config import config
 import datetime
 import random
 import re
@@ -26,6 +26,7 @@ import email
 import StringIO
 import sys
 import logging
+import logging.handlers
 import os.path
 import shelve
 from os import chmod
@@ -41,20 +42,20 @@ HISTPATH = os.path.join(HOMEDIR, 'history')
 MODFILE = os.path.join(HOMEDIR, 'db', 'moderated.db')
 
 def init_logging():
-    """Initialise logging.  This should be the first thing done so that all
-    further operations are logged."""
+    logfmt = config.get('logging', 'format')
+    datefmt = config.get('logging', 'datefmt')
     loglevels = {'debug': logging.DEBUG, 'info': logging.INFO,
                 'warn': logging.WARN, 'error': logging.ERROR}
-    logfile = os.path.join(LOGPATH, datestring())
-    if not os.path.exists(logfile):
-        lf = open(logfile, 'w')
-        lf.close()
-        chmod(logfile, 0644)
-    logging.basicConfig(
-        filename=logfile,
-        level = loglevels[LOGLEVEL],
-        format = '%(asctime)s %(process)d %(levelname)s %(message)s',
-        datefmt = '%Y-%m-%d %H:%M:%S')
+    logging.getLogger().setLevel(logging.DEBUG)
+    logfile = logging.handlers.TimedRotatingFileHandler(
+                    os.path.join(config.get('paths', 'log'), 'nymserv.log'),
+                    when='midnight',
+                    interval=1,
+                    backupCount=config.getint('logging', 'retain'),
+                    utc=True)
+    logfile.setLevel(loglevels[config.get('logging', 'level')])
+    logfile.setFormatter(logging.Formatter(logfmt, datefmt=datefmt))
+    logging.getLogger().addHandler(logfile)
 
 def file2list(filename):
     """Read a file and return each line as a list item."""
@@ -235,7 +236,7 @@ def msgparse(message):
     
     # Before anything else, lets write the message to a history file so that
     # we have a means to see why messages succeeded or failed.
-    histfile = os.path.join(HISTPATH, datestring())
+    histfile = os.path.join(config.get('paths', 'history'), datestring())
     hist = open(histfile, 'a')
     hist.write('From foo@bar Thu Jan  1 00:00:01 1970\n')
     hist.write(message + '\n\n')
@@ -272,7 +273,7 @@ def msgparse(message):
     # Check for poison headers in the message.  Any of these will result in the
     # message being rejected.
     poisonfile = os.path.join(config.get('paths', 'etc'), 'headers_poison')
-    if os.path.isfile(stripfile):
+    if os.path.isfile(poisonfile):
         for header in file2list(poisonfile):
             if header in msg:
                 logging.warn("Message contains a blacklisted %s header. "
