@@ -167,12 +167,6 @@ def ngvalidate(newsgroups):
         logging.warn("Message has no valid newsgroups.  Rejecting it.")
         sys.exit(0)
 
-    # Create a valid entry for a Newsgroups header.  The first entry is just
-    # the group name.  Subsequent ones are prefixed with a comma.
-    header = goodng[0]
-    for ng in range(1, len(goodng)):
-        header = header + ',' + goodng[ng]
-    logging.info("Validated Newsgroups header is: %s", header)
 
     # Check crosspost limit
     if len(goodng) > config.getint('thresholds', 'max_crossposts'):
@@ -181,47 +175,9 @@ def ngvalidate(newsgroups):
                      % (len(goodng),
                         config.getint('thresholds', 'max_crossposts')))
         sys.exit(0)
-    # We return a list of good newsgroups, and a full comma-seperated header.
-    return goodng, header
-
-def extract_posting_hosts(allhosts, groups):
-    """We expect to receive a dict of nntphosts and a list of groups. If each
-    group in the list matches a regex, we include that host in a new dict
-    called goodhosts.  This is returned in the required format for passing to
-    our actual posting routine."""
-    # These are the outgoing feed methods we understand.
-    good_methods = ["post", "ihave"]
-    goodhosts = {}
-    for server in allhosts:
-        # Define a default port number to use for nntp.
-        port = 119
-        # Reject a given server if we didn't get passed the two parameters
-        # we require:- Regex Pattern and Posting Method.  There is also an
-        # extended method of three parameters, the third being port number.
-        if len(allhosts[server]) == 2:
-            pattern, method = allhosts[server]
-        elif len(allhosts[server]) == 3:
-            pattern, method, port = allhosts[server]
-        else:
-            logging.warn("Invalid configuration for server %s", server)
-            continue
-        # Validate the feed method we are configured to use.
-        if not method in good_methods:
-            logging.warn("Unknown feed method for server %s", server)
-            continue
-        select = True
-        for group in groups:
-            match = re.search(pattern, group)
-            if not match:
-                # As we need all groups to match this pattern, there's no
-                # point carrying on trying once one has failed.
-                select = False
-                break
-        if select:
-            logging.debug(long_string(['Selecting host %s as a feed ' % server,
-                                      'recipient with method %s' % method]))
-            goodhosts[server] = [method, port]
-    return goodhosts
+    header = ','.join(goodng)
+    logging.info("Validated Newsgroups header is: %s", header)
+    return header
 
 def middate():
     """Return a date in the format yyyymmdd.  This is useful for generating
@@ -364,7 +320,7 @@ def msgparse(message):
             sys.exit(0)
     # Clean the newsgroups list by checking that each element seperated by ','
     # are in an accepted newsgroup format.
-    groups, msg['Newsgroups'] = ngvalidate(dest)
+    msg['Newsgroups'] = ngvalidate(dest)
     # Check for blacklisted Newsgroups.
     rc = blacklist_check('bad_groups', msg['Newsgroups'])
     if rc:
@@ -393,33 +349,6 @@ def msgparse(message):
     if 'Path' in msg:
         logging.info("Message has a preloaded path header of %s", msg['Path'])
 
-    # If the message has an X-Newsserver header, use the specified posting host
-    # instead of the default servers.
-    # TODO probably should do some error checking of the supplied hostname:port
-    if 'X-Newsserver' in msg:
-        logging.info(long_string(['Message directs posting to ',
-                                 msg['X-Newsserver'],
-                                 '. Adding comment header.']))
-        comment_text = long_string(['A user of this Mail2News Gateway ',
-            'issued a directive to force posting through ',
-            '%s. If this is undesirable, please ' % msg['X-Newsserver'],
-            'contact the administrator at the supplied abuse address.'])
-        if not 'Comments' in msg:
-            logging.debug("Assigned header: Comments")
-	    msg['Comments'] = comment_text
-        else:
-            for free_comment in range(1,99):
-                comments_header = 'Comments' + str(free_comment)
-                if not comments_header in msg:
-                    msg[comments_header] = comment_text
-                    logging.debug("Assigned header: %s", comments_header)
-                    break
-        dest_server = {msg['X-Newsserver']: 'post'}
-    else:
-        # If we don't have an X-Newserver header, we use our configured
-        # nntphosts dictionary.
-        dest_server = extract_posting_hosts(config.nntphosts, groups)
-
     # Look for headers to remove from the message.
     stripfile = os.path.join(config.get('paths', 'etc'), 'headers_strip')
     if os.path.isfile(stripfile):
@@ -431,34 +360,21 @@ def msgparse(message):
     # Add additional headers relating to the mail2news gateway.
     msg['Path'] = config.get('nntp', 'path_header')
 
-    # The following section parses the message payload.  Remove
-    # them to pass the payload unchanged.
-    if msg.is_multipart():
-        #payload = msg.get_payload(decode=1)
-        logging.info('This is a multipart message.  Bypassing payload parsing.')
-    else:
-        preparse_payload = msg.get_payload(decode=1)
-        payload = body_parse(preparse_payload)
-        msg.set_payload(payload)
-        # Last (in order to be accurate) try and count the number of lines in the
-        # message.
-        msg['Lines'] = str(payload.count("\n") + 1)
-
     # Add an Injection-Info Header.
-    msg['Injection-Info'] = (config.get('nntp', 'injection_host') + '; '
-                             'mail-complaints-to='
+    msg['Injection-Info'] = (config.get('nntp', 'injection_host') +
+                             '; mail-complaints-to=' +
                              config.get('nntp', 'contact'))
 
     # Convert message to a string and validate its size.
     txt_msg = msg.as_string()
     size = len(txt_msg)
-    if size > config.getint('thresholds', 'max_bytes':
+    if size > config.getint('thresholds', 'max_bytes'):
         logging.warn('Message exceeds %s size limit. Rejecting.'
-                     % config.get('thresholds', 'max_bytes')
+                     % config.get('thresholds', 'max_bytes'))
         sys.exit(1)
     logging.debug('Message is %s bytes', size)
 
-    return msg['Message-ID'], dest_server, txt_msg
+    return msg['Message-ID'], txt_msg
 
 def list2regex(l):
     "Convert a list to a Regular Expression"
