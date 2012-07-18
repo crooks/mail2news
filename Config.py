@@ -80,9 +80,6 @@ else:
     configfile = os.path.join(homedir, '.mail2newsrc')
 if os.path.isfile(configfile):
     config.read(configfile)
-else:
-    sys.stdout.write("%s: Config file does not exist\n" % configfile)
-    sys.exit(1)
 
 # Now we check the directory structure exists and is valid.
 if config.has_option('paths', 'basedir'):
@@ -148,5 +145,5 @@ if not config.has_option('nntp', 'default_from'):
                ('Unknown User <nobody@' +
                 config.get('nntp', 'injection_host') + ">"))
 
-with open('example.cfg', 'wb') as configfile:
-    config.write(configfile)
+#with open('samples/mail2newsrc', 'wb') as configfile:
+#    config.write(configfile)

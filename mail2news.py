@@ -34,12 +34,6 @@ import socket
 from email.Utils import formatdate
 import nntplib
 
-LOGLEVEL = 'info'
-HOMEDIR = os.path.expanduser('~')
-ETCPATH = os.path.join(HOMEDIR, 'etc')
-LOGPATH = os.path.join(HOMEDIR, 'log')
-HISTPATH = os.path.join(HOMEDIR, 'history')
-MODFILE = os.path.join(HOMEDIR, 'db', 'moderated.db')
 
 def init_logging():
     logfmt = config.get('logging', 'format')
@@ -57,17 +51,6 @@ def init_logging():
     logfile.setFormatter(logging.Formatter(logfmt, datefmt=datefmt))
     logging.getLogger().addHandler(logfile)
 
-def file2list(filename):
-    """Read a file and return each line as a list item."""
-    items = []
-    if os.path.isfile(filename):
-        readlist = open(filename, 'r')
-        for line in readlist:
-            entry = line.split('#', 1)[0].rstrip()
-            if entry:
-                items.append(entry)
-        readlist.close()
-    return items
 
 def long_string(loglist):
     """Concatenate strings and return a single long string."""
@@ -145,7 +128,7 @@ def ngvalidate(newsgroups):
     do_moderation = False
     modfile = os.path.join(config.get('paths', 'lib'), 'moderated.db')
     if os.path.isfile(modfile):
-        mod = shelve.open(MODFILE, flag='r') # Open moderated groups shelve.
+        mod = shelve.open(modfile, flag='r') # Open moderated groups shelve.
         do_moderation = True
     # Check each group is correctly formatted.  Drop those that aren't.
     for ng in groups:
@@ -225,7 +208,7 @@ def blacklist_check(bad_file, text):
     """Take a filename and convert it to a list.  That list then becomes a
     Regular Expression that we compare against the supplied string.  Usually
     the string (text) will be a message header."""
-    filename = os.path.join(ETCPATH, bad_file)
+    filename = os.path.join(config.get('paths', 'etc'), bad_file)
     bad_list = file2list(filename)
     if bad_list:
         bad_re = list2regex(bad_list)
