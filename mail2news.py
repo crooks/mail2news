@@ -273,7 +273,7 @@ def msgparse(message):
             sys.exit(1)
     else:
         logging.info("Message has no From header. Inserting a null one.")
-        msg['From'] = 'Unknown User <nobody@mixmin.net>'
+        msg['From'] = config.get('nntp', 'default_from')
         
     # Check for poison headers in the message.  Any of these will result in the
     # message being rejected.
@@ -452,13 +452,18 @@ def newssend(mid, content):
         logging.debug("Attempting delivery to %s", host)
         try:
             s = nntplib.NNTP(host, 119)
-            logging.debug("IHAVE process connected to %s", host)
+            logging.debug("%s: Connection established", host)
         except socket.timeout:
             logging.warn('Timeout during IHAVE conection to %s', host)
             continue
-        except:
-            logging.error('Unknown error during IHAVE to %s', host)
+        except socket.gaierror, e:
+            logging.warn('%s: Connection error: %s' % (host, e))
             continue
+        except socket.error,e:
+            logging.warn('%s: Connection error: %s' %  (host, e))
+        #except:
+        #    logging.error('%s: Unknown connection error', host)
+        #    continue
 
         try:
             s.ihave(mid, payload)

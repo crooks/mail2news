@@ -118,6 +118,10 @@ if not config.has_option('nntp', 'path_header'):
 if not config.has_option('nntp', 'contact'):
     config.set('nntp', 'contact',
                'abuse@' + config.get('nntp', 'injection_host'))
+if not config.has_option('nntp', 'default_from'):
+    config.set('nntp', 'default_from',
+               ('Unknown User <nobody@' +
+                config.get('nntp', 'injection_host') + ">"))
 
 with open('example.cfg', 'wb') as configfile:
     config.write(configfile)
