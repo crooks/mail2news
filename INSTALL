@@ -1,0 +1,25 @@
+The following command will install the mail2news program:-
+
+	python setup.py install
+
+This will need to be run by a user with write permissions to the Python
+dist-packages directory. In most cases this will be root.  See the MANIFEST
+file for a list of the files that will be installed.
+
+After installation, the gateway is ready for testing.  Login with a system
+account you plan to use for running the gateway.  Ideally, create one
+specifically for the job.  Run mail2news as that user and the required
+directory structure will be created under the homedir/mail2news along with
+some default configuration files.
+
+Next you need to customize the gateway's configuration to suit your
+environment.  Copy the mail2newsrc file to ~/.mail2newsrc and modify it as
+required.  Each option is preceeded with a short explanation and the default
+value is shown.  Don't forget to uncomment the associated section header if you
+uncomment an option within it!
+
+Once everything is working to your satisfaction, you'll need to configure your
+MTA (or Procmail) to pass messages to the gateway.
+
+
+That's it, you're done!

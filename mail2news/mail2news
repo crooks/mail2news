@@ -18,7 +18,7 @@
 # or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 # for more details.
 
-from Config import config
+from mail2news.Config import config
 import datetime
 import random
 import re
