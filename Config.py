@@ -38,6 +38,13 @@ def makedir(d):
             sys.stdout.write(msg)
             sys.exit(1)
 
+def etcfn(f):
+    """Construct an absolute filename for a file in etc.  If the file doesn't
+    exist, return its name, otherwise return false.
+
+    """
+    return os.path.join(config.get('paths', 'etc'), f)
+
 
 # Configure the Config Parser.
 config = ConfigParser.RawConfigParser()
@@ -87,6 +94,9 @@ makedir(basedir)
 
 if not config.has_option('paths', 'etc'):
     config.set('paths', 'etc', os.path.join(basedir, 'etc'))
+    # This flag is used later to decide if default config files should be
+    # written to the, newly created, etc directory.
+    etcexists = os.path.isdir(config.get('paths', 'etc'))
 makedir(config.get('paths', 'etc'))
 
 if not config.has_option('paths', 'log'):
@@ -108,6 +118,21 @@ makedir(maildir)
 makedir(os.path.join(maildir, 'cur'))
 makedir(os.path.join(maildir, 'new'))
 makedir(os.path.join(maildir, 'tmp'))
+
+# Write default config files if required.
+if not etcexists:
+    f = open(etcfn('nntphosts'), 'w')
+    f.write('localhost\n')
+    f.close()
+    f = open(etcfn('headers_poison'), 'w')
+    f.write('Control\n')
+    f.close()
+    f = open(etcfn('headers_strip'), 'w')
+    f.write("Content-Length\nDelivered-To\nLines\nNNTP-Posting-Host\n")
+    f.write("Return-Path\nTo\nX-Original-To\nXref\n")
+    f.write("X-Spambayes-Classification\nX-Spam-Checker-Version\n")
+    f.write("X-Spam-Level\nX-Spam-Status\n")
+    f.close()
 
 # Define some defaults where options haven't been explicitly set.
 if not config.has_option('nntp', 'messageid'):
