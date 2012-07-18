@@ -1,0 +1,74 @@
+#[paths]
+## The base dir under which all others will, by default, be created.  All
+## the other  directories created are relative to this unless they are
+## explicitly defined.
+#basedir = /homedir/mail2news
+
+## Individual paths can be configured if more granular control is required
+## than offered by the basedir option.
+#etc = /homedir/mail2news/etc
+#log = /homedir/mail2news/log
+#lib = /homedir/mail2news/lib
+#history = /homedir/mail2news/history
+#maildir = /homedir/mail2news/Maildir
+
+
+#[logging]
+## Logging level can be debug, info, warn or error
+#level = info
+
+## Format dictates the format of entries in the logfile.  The Python
+## logging documentation should be consulted if you want to change this.
+#format = %(asctime)s %(levelname)s %(message)s
+
+## As with the logging format above, this controls the format of the date
+## field within log entries.
+#datefmt = %Y-%m-%d %H:%M:%S
+
+## How many days to retain old logs for.
+#retain = 7
+
+
+#[nntp]
+## If only injection-host is defined in this section, the other options will
+## use that domain as intelligently as possible.
+#injection_host = mail2news.domain.invalid
+
+## This defines what should be used on the right-side of Message-IDs generated
+## by the server.  As all incoming email messages should have a MID, this
+## setting is only really meaningful during testing.
+#messageid = mail2news.domain.invalid
+
+## This is the entry that will be inserted into NNTP Path headers during
+## message injection.
+#path_header = mail2news.domain.invalid!not-for-mail
+
+## An email contact address that should reach the gateway operator.
+#contact = abuse@mail2news.domain.invalid
+
+## When a message is received without a From header, this value will be
+## inserted.
+#default_from = Unknown User <nobody@mail2news.domain.invalid>
+
+
+#[thresholds]
+## How long the gateway should try to obtain a connection with each peer.
+#socket_timeout = 10
+
+## When messages arrive with a yyyymmdd format, how far into the past will
+## we accept.  Ideally this should be as long as possible without risking
+## spammers inadvertently harvesting an address and hitting Usenet.
+#hours_past = 48
+
+## Linked to the previous setting, this is how far in the future a message
+## is considered acceptable.  This should be the shortest period without
+## local time differences causing deliver failure.
+#hours_future = 24
+
+## The maximum number of groups that may be defined in a crosspost.
+#max_crossposts = 3
+
+## The maximum size of message (in Bytes) that will be posted.
+#max_bytes = 204800
+
+# vim: tabstop=4 expandtab syntax=config
