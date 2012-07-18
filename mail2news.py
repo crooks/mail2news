@@ -59,6 +59,7 @@ def long_string(loglist):
         logmessage += line
     return logmessage
 
+
 def parse_recipient(user):
     """Check to see if the recipient of the email is in the format
     yyyymmdd-newsgroups.  If it is then return the decoded timestamp and
@@ -89,6 +90,7 @@ def parse_recipient(user):
         logging.warn('Badly formatted recipient.  Rejecting message.')
         sys.exit(0)
 
+
 def validate_stamp(stamp):
     """Validate that the timestamp decoded from the recipient details is both
     a valid timestamp and falls within acceptable time boundaries."""
@@ -104,7 +106,7 @@ def validate_stamp(stamp):
     # We don't know if the date is valid, just that it contains 8 numeric
     # digits.  If the Try succeeds, at least it is a parsable date.
     try:
-        nowtime = datetime.datetime(year,month,day)
+        nowtime = datetime.datetime(year, month, day)
     except ValueError:
         logging.warn('Malformed date element. Rejecting message.')
         sys.exit(0)
@@ -119,20 +121,21 @@ def validate_stamp(stamp):
                                  'Rejecting message.']))
         sys.exit(0)
 
+
 def ngvalidate(newsgroups):
     """Weed out rogue entries in the Newsgroups header.  This is more polite
     than feeding junk to the News servers."""
     newsgroups = newsgroups.rstrip(",")
     groups = newsgroups.split(',')
-    goodng = [] # This will become a list of good newsgroups
+    goodng = []  # This will become a list of good newsgroups
     do_moderation = False
     modfile = os.path.join(config.get('paths', 'lib'), 'moderated.db')
     if os.path.isfile(modfile):
-        mod = shelve.open(modfile, flag='r') # Open moderated groups shelve.
+        mod = shelve.open(modfile, flag='r')  # Open moderated groups shelve.
         do_moderation = True
     # Check each group is correctly formatted.  Drop those that aren't.
     for ng in groups:
-        ng = ng.strip() # Strip whitespaces
+        ng = ng.strip()  # Strip whitespaces
         fmtchk = re.match('[a-z]+(\.[0-9a-z-+_]+)+$', ng)
         if fmtchk:
             if ng in goodng:
@@ -149,13 +152,12 @@ def ngvalidate(newsgroups):
         else:
             logging.info("%s is not a validated newsgroup, ignoring.", ng)
     if do_moderation:
-        mod.close() # Close moderated shelve, its work is done.
+        mod.close()  # Close moderated shelve, its work is done.
 
     # No point proceeding if there are no valid Newsgroups.
     if len(goodng) < 1:
         logging.warn("Message has no valid newsgroups.  Rejecting it.")
         sys.exit(0)
-
 
     # Check crosspost limit
     if len(goodng) > config.getint('thresholds', 'max_crossposts'):
@@ -168,12 +170,14 @@ def ngvalidate(newsgroups):
     logging.info("Validated Newsgroups header is: %s", header)
     return header
 
+
 def middate():
     """Return a date in the format yyyymmdd.  This is useful for generating
     a component of Message-ID."""
     utctime = datetime.datetime.utcnow()
     utcstamp = utctime.strftime("%Y%m%d%H%M%S")
     return utcstamp
+
 
 def datestring():
     """As per middate but only return the date element of UTC.  This is used
@@ -182,20 +186,22 @@ def datestring():
     utcstamp = utctime.strftime("%Y%m%d")
     return utcstamp
 
+
 def midrand(numchars):
     """Return a string of random chars, either uc, lc or numeric.  This
     is used to provide randomness in Message-ID's."""
     randstring = ""
     while len(randstring) < numchars:
-        rndsrc = random.randint(1,3)
+        rndsrc = random.randint(1, 3)
         if rndsrc == 1:
-            a = random.randint(48,57)
+            a = random.randint(48, 57)
         elif rndsrc == 2:
-            a = random.randint(65,90)
+            a = random.randint(65, 90)
         elif rndsrc == 3:
-            a = random.randint(97,122)
+            a = random.randint(97, 122)
         randstring = randstring + chr(a)
     return randstring
+
 
 def messageid(rightpart):
     """Compile a valid Message-ID.  This should never be called outside
@@ -203,6 +209,7 @@ def messageid(rightpart):
     leftpart = middate() + "." + midrand(12)
     mid = '<' + leftpart + '@' + rightpart + '>'
     return mid
+
 
 def blacklist_check(bad_file, text):
     """Take a filename and convert it to a list.  That list then becomes a
@@ -217,11 +224,12 @@ def blacklist_check(bad_file, text):
             return hit.group(0)
     return False
 
+
 def msgparse(message):
     """This routine is the engine room of the whole program.  It parses the
     message and if all is well, spits it out in a text format ready for
     posting."""
-    
+
     # Before anything else, lets write the message to a history file so that
     # we have a means to see why messages succeeded or failed.
     histfile = os.path.join(config.get('paths', 'history'), datestring())
@@ -245,7 +253,8 @@ def msgparse(message):
 
     # If the message doesn't have a Date header, insert one.
     if not 'Date' in msg:
-        logging.info("Message has no Date header. Inserting current timestamp.")
+        logging.info("Message has no Date header. Inserting current "
+                     "timestamp.")
         msg['Date'] = formatdate()
 
     # Check for blacklisted From headers.
@@ -257,7 +266,7 @@ def msgparse(message):
     else:
         logging.info("Message has no From header. Inserting a null one.")
         msg['From'] = config.get('nntp', 'default_from')
-        
+
     # Check for poison headers in the message.  Any of these will result in the
     # message being rejected.
     poisonfile = os.path.join(config.get('paths', 'etc'), 'headers_poison')
@@ -294,18 +303,16 @@ def msgparse(message):
         logging.debug('Message has a Newsgroups header of %s', dest)
         if recipient.startswith('mail2news_nospam'):
             nospam = True
-            logmes  = "Message includes a nospam directive. "
-            logmes += "Will munge From headers accordingly."
-            logging.info(logmes)
+            logging.info("Message includes a nospam directive. Will munge "
+                         "From headers accordingly.")
     else:
         logmes = "No Newsgroups header, trying to parse recipient information"
         logging.info(logmes)
         (stamp, dest, nospam) = parse_recipient(recipient)
         # Check to see if the timestamp extracted from the recipient is valid.
         if not validate_stamp(stamp):
-            logmes  = "No Newsgroups header or valid recipient. "
-            logmes += "Rejecting message."
-            logging.warn(logmes)
+            logging.warn("No Newsgroups header or valid recipient. Rejecting "
+                         "message.")
             sys.exit(0)
     # Clean the newsgroups list by checking that each element seperated by ','
     # are in an accepted newsgroup format.
@@ -319,7 +326,7 @@ def msgparse(message):
     # If we are in nospam mode, edit the From header and create an
     # Author-Supplied-Address header.
     if nospam:
-        name,addy = fromparse(msg['From'])
+        name, addy = fromparse(msg['From'])
         if addy:
             del msg['Author-Supplied-Address']
             del msg['From']
@@ -332,7 +339,6 @@ def msgparse(message):
     else:
         logging.info("Message has no Subject header. Inserting a null one.")
         msg['Subject'] = 'None'
-
 
     # Check for preloaded Path headers, these are legal but unusual.
     if 'Path' in msg:
@@ -366,6 +372,7 @@ def msgparse(message):
 
     return msg['Message-ID'], txt_msg
 
+
 def list2regex(l):
     "Convert a list to a Regular Expression"
     txtregex = "|".join(l)
@@ -373,16 +380,6 @@ def list2regex(l):
     txtregex = re.sub('\|\|+', '|', txtregex)
     return re.compile(txtregex)
 
-def body_parse(body):
-    """Parse the message body and replace selected strings. This isn't
-    always considered acceptable practice as the body belongs to the sender.
-    Only delimiter-type strings should be tweeked."""
-    oldbody = body
-    for string in config.bin_body:
-        body = body.replace(string, "")
-    if oldbody <> body:
-        logging.info('Payload has been modified due to matching remove strings.')
-    return body
 
 def fromparse(fromhdr):
     """This does the good old mail2news_nospam processing to extract the name
@@ -408,7 +405,8 @@ def fromparse(fromhdr):
     if addy:
         addy = addy.replace('.', '<DOT>')
         addy = addy.replace('@', '<AT>')
-    return name,addy
+    return name, addy
+
 
 def file2list(filename):
     """Read a file and return each line as a list item."""
@@ -420,6 +418,7 @@ def file2list(filename):
             if len(entry) > 0:
                 items.append(entry)
     return items
+
 
 def newssend(mid, content):
     """Time to send the message using either IHAVE or POST for each defined
@@ -442,8 +441,8 @@ def newssend(mid, content):
         except socket.gaierror, e:
             logging.warn('%s: Connection error: %s' % (host, e))
             continue
-        except socket.error,e:
-            logging.warn('%s: Connection error: %s' %  (host, e))
+        except socket.error, e:
+            logging.warn('%s: Connection error: %s' % (host, e))
         #except:
         #    logging.error('%s: Unknown connection error', host)
         #    continue
@@ -459,6 +458,7 @@ def newssend(mid, content):
         except:
             logging.warn(long_string(['IHAVE to %s returned an ' % host,
                             'unknown error: %s' % sys.exc_info()[1]]))
+
 
 def main():
     init_logging()

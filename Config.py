@@ -38,6 +38,7 @@ def makedir(d):
             sys.stdout.write(msg)
             sys.exit(1)
 
+
 def etcfn(f):
     """Construct an absolute filename for a file in etc.  If the file doesn't
     exist, return its name, otherwise return false.
