@@ -52,14 +52,6 @@ def init_logging():
     logging.getLogger().addHandler(logfile)
 
 
-def long_string(loglist):
-    """Concatenate strings and return a single long string."""
-    logmessage = ""
-    for line in loglist:
-        logmessage += line
-    return logmessage
-
-
 def parse_recipient(user):
     """Check to see if the recipient of the email is in the format
     yyyymmdd-newsgroups.  If it is then return the decoded timestamp and
@@ -71,8 +63,8 @@ def parse_recipient(user):
         user = domainchk.group(1)
     userfmt = re.match('(mail2news|mail2news_nospam)\-([0-9]{8})\-(.*)', user)
     if userfmt:
-        logging.info(long_string(['Message has a correctly formatted ',
-                                 'recipient. Validating it.']))
+        logging.info('Message has a correctly formatted recipient. '
+                     'Validating it.')
         recipient = userfmt.group(1)
         timestamp = userfmt.group(2)
         newsgroups = userfmt.group(3)
@@ -82,8 +74,8 @@ def parse_recipient(user):
         # Check to see if the header includes a 'nospam' instruction.
         nospam = False
         if recipient == 'mail2news_nospam':
-            logging.info(long_string(['Message includes a nospam directive.  ',
-                                     'Will munge headers accordingly.']))
+            logging.info('Message includes a nospam directive. Will munge '
+                         'headers accordingly.')
             nospam = True
         return timestamp, newsgroups, nospam
     else:
@@ -117,8 +109,8 @@ def validate_stamp(stamp):
         logging.info('Timesstamp (%s) is valid and within bounds.', stamp)
         return True
     else:
-        logging.warn(long_string(['Timestamp (%s) is out of bounds. ' % stamp,
-                                 'Rejecting message.']))
+        logging.warn('Timestamp (%s) is out of bounds. Rejecting message.'
+                     % stamp)
         sys.exit(0)
 
 
@@ -453,11 +445,11 @@ def newssend(mid, content):
         except nntplib.NNTPTemporaryError:
             logging.info("IHAVE to %s returned: %s", host, sys.exc_info()[1])
         except nntplib.NNTPPermanentError:
-            logging.warn(long_string(['IHAVE to %s returned a ' % host,
-                        'permanent error: %s' % sys.exc_info()[1]]))
+            logging.warn('IHAVE to %s returned a permanent error: %s'
+                         % (host, sys.exc_info()[1]))
         except:
-            logging.warn(long_string(['IHAVE to %s returned an ' % host,
-                            'unknown error: %s' % sys.exc_info()[1]]))
+            logging.warn('IHAVE to %s returned an unknown error: %s'
+                         % (host, sys.exc_info()[1]))
 
 
 def main():
