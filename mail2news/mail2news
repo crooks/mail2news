@@ -420,36 +420,39 @@ def newssend(mid, content):
     socket.setdefaulttimeout(config.getint('thresholds', 'socket_timeout'))
     hostfile = os.path.join(config.get('paths', 'etc'), 'nntphosts')
     if not os.path.isfile(hostfile):
-        logging.error("No nntphosts specified in %s" % hostfile)
+        logging.error("No nntphosts specified in %s", hostfile)
     for host in file2list(hostfile):
         payload = StringIO.StringIO(content)
         logging.debug("Attempting delivery to %s", host)
         try:
             s = nntplib.NNTP(host, 119)
             logging.debug("%s: Connection established", host)
+        except nntplib.NNTPPermanentError:
+            logging.warn('Connection to %s returned a permanent error: %s',
+                         host, sys.exc_info()[1])
+            continue
         except socket.timeout:
             logging.warn('Timeout during IHAVE conection to %s', host)
             continue
         except socket.gaierror, e:
-            logging.warn('%s: Connection error: %s' % (host, e))
+            logging.warn('%s: Connection error: %s', host, e)
             continue
         except socket.error, e:
-            logging.warn('%s: Connection error: %s' % (host, e))
-        #except:
-        #    logging.error('%s: Unknown connection error', host)
-        #    continue
+            logging.warn('%s: Connection error: %s', host, e)
+        except:
+            logging.traceback('%s: Unknown connection error', host)
+            continue
 
         try:
             s.ihave(mid, payload)
-            logging.info("%s successful IHAVE to %s." % (mid, host))
+            logging.info("%s successful IHAVE to %s.", mid, host)
         except nntplib.NNTPTemporaryError:
             logging.info("IHAVE to %s returned: %s", host, sys.exc_info()[1])
         except nntplib.NNTPPermanentError:
-            logging.warn('IHAVE to %s returned a permanent error: %s'
-                         % (host, sys.exc_info()[1]))
+            logging.warn('IHAVE to %s returned a permanent error: %s',
+                         host, sys.exc_info()[1])
         except:
-            logging.warn('IHAVE to %s returned an unknown error: %s'
-                         % (host, sys.exc_info()[1]))
+            logging.traceback('IHAVE to %s returned an unknown error', host)
 
 
 def main():
