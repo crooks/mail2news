@@ -38,15 +38,17 @@ import nntplib
 def init_logging():
     logfmt = config.get('logging', 'format')
     datefmt = config.get('logging', 'datefmt')
-    loglevels = {'debug': logging.DEBUG, 'info': logging.INFO,
-                'warn': logging.WARN, 'error': logging.ERROR}
+    loglevels = {'debug': logging.DEBUG,
+                 'info': logging.INFO,
+                 'warn': logging.WARN,
+                 'error': logging.ERROR}
     logging.getLogger().setLevel(logging.DEBUG)
     logfile = logging.handlers.TimedRotatingFileHandler(
-                    os.path.join(config.get('paths', 'log'), 'mail2news.log'),
-                    when='midnight',
-                    interval=1,
-                    backupCount=config.getint('logging', 'retain'),
-                    utc=True)
+        os.path.join(config.get('paths', 'log'), 'mail2news.log'),
+        when='midnight',
+        interval=1,
+        backupCount=config.getint('logging', 'retain'),
+        utc=True)
     logfile.setLevel(loglevels[config.get('logging', 'level')])
     logfile.setFormatter(logging.Formatter(logfmt, datefmt=datefmt))
     logging.getLogger().addHandler(logfile)
@@ -88,9 +90,9 @@ def validate_stamp(stamp):
     a valid timestamp and falls within acceptable time boundaries."""
     # Get timestamps for hours before and ahead of current UTC
     beforetime = datetime.datetime.utcnow() - \
-      datetime.timedelta(hours=config.getint('thresholds', 'hours_past'))
+        datetime.timedelta(hours=config.getint('thresholds', 'hours_past'))
     aftertime = datetime.datetime.utcnow() + \
-      datetime.timedelta(hours=config.getint('thresholds', 'hours_future'))
+        datetime.timedelta(hours=config.getint('thresholds', 'hours_future'))
     # Extract elements of the date stamp.
     year = int(stamp[0:4])
     month = int(stamp[4:6])
@@ -244,7 +246,7 @@ def msgparse(message):
                      % msg['Message-ID'])
 
     # If the message doesn't have a Date header, insert one.
-    if not 'Date' in msg:
+    if 'Date' not in msg:
         logging.info("Message has no Date header. Inserting current "
                      "timestamp.")
         msg['Date'] = formatdate()
