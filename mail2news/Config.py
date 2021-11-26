@@ -17,7 +17,7 @@
 # or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 # for more details.
 
-import ConfigParser
+import configparser
 import os
 import sys
 
@@ -31,7 +31,7 @@ def makedir(d):
     if not os.path.isdir(d):
         parent = os.path.dirname(d)
         if os.path.isdir(parent):
-            os.mkdir(d, 0700)
+            os.mkdir(d, 0o700)
             sys.stdout.write("%s: Directory created.\n" % d)
         else:
             msg = "%s: Unable to make directory. Aborting.\n" % d
@@ -48,7 +48,7 @@ def etcfn(f):
 
 
 # Configure the Config Parser.
-config = ConfigParser.RawConfigParser()
+config = configparser.RawConfigParser()
 
 # By default, all the paths are subdirectories of the homedir. We define the
 # actual paths after reading the config file as they're relative to basedir.
