@@ -425,7 +425,7 @@ def newssend(mid, content):
     if not os.path.isfile(hostfile):
         logging.error("No nntphosts specified in %s", hostfile)
     for host in file2list(hostfile):
-        payload = StringIO.StringIO(content)
+        payload = StringIO(content)
         logging.debug("Attempting delivery to %s", host)
         try:
             s = nntplib.NNTP(host, 119)
