@@ -350,9 +350,10 @@ def msgparse(message):
     msg['Path'] = config.get('nntp', 'path_header')
 
     # Add an Injection-Info Header.
-    msg['Injection-Info'] = (config.get('nntp', 'injection_host') +
-                             '; mail-complaints-to=' +
-                             config.get('nntp', 'contact'))
+    msg['Injection-Info'] = (
+        "{0}; posting-host={0}; mail-complaints-to={1}".format(
+            config.get('nntp', 'injection_host'),
+            config.get('nntp', 'contact')))
     logging.debug("Injection-Info: %s" % msg['Injection-Info'])
 
     # Convert message to a string and validate its size.
