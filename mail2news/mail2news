@@ -40,7 +40,7 @@ def init_logging():
     datefmt = config.get('logging', 'datefmt')
     loglevels = {'debug': logging.DEBUG,
                  'info': logging.INFO,
-                 'warn': logging.WARN,
+                 'warn': logging.WARNING,
                  'error': logging.ERROR}
     logging.getLogger().setLevel(logging.DEBUG)
     logfile = logging.handlers.TimedRotatingFileHandler(
@@ -81,7 +81,7 @@ def parse_recipient(user):
             nospam = True
         return timestamp, newsgroups, nospam
     else:
-        logging.warn('Badly formatted recipient.  Rejecting message.')
+        logging.warning('Badly formatted recipient.  Rejecting message.')
         sys.exit(0)
 
 
@@ -102,7 +102,7 @@ def validate_stamp(stamp):
     try:
         nowtime = datetime.datetime(year, month, day)
     except ValueError:
-        logging.warn('Malformed date element. Rejecting message.')
+        logging.warning('Malformed date element. Rejecting message.')
         sys.exit(0)
 
     # By this point, the supplied date arg must be valid, but does
@@ -111,7 +111,7 @@ def validate_stamp(stamp):
         logging.info('Timesstamp (%s) is valid and within bounds.', stamp)
         return True
     else:
-        logging.warn('Timestamp (%s) is out of bounds. Rejecting message.'
+        logging.warning('Timestamp (%s) is out of bounds. Rejecting message.'
                      % stamp)
         sys.exit(0)
 
@@ -150,12 +150,12 @@ def ngvalidate(newsgroups):
 
     # No point proceeding if there are no valid Newsgroups.
     if len(goodng) < 1:
-        logging.warn("Message has no valid newsgroups.  Rejecting it.")
+        logging.warning("Message has no valid newsgroups.  Rejecting it.")
         sys.exit(0)
 
     # Check crosspost limit
     if len(goodng) > config.getint('thresholds', 'max_crossposts'):
-        logging.warn("Message contains %s newsgroups, exceeding crosspost "
+        logging.warning("Message contains %s newsgroups, exceeding crosspost "
                      "limit of %s.  Rejecting."
                      % (len(goodng),
                         config.getint('thresholds', 'max_crossposts')))
@@ -242,7 +242,7 @@ def msgparse(message):
         logging.info('Processing message: ' + msg['Message-ID'])
     else:
         msg['Message-ID'] = messageid(config.get('nntp', 'messageid'))
-        logging.warn("Processing message with no Message-ID. Assigned: %s."
+        logging.warning("Processing message with no Message-ID. Assigned: %s."
                      % msg['Message-ID'])
 
     # If the message doesn't have a Date header, insert one.
@@ -255,7 +255,7 @@ def msgparse(message):
     if 'From' in msg:
         rc = blacklist_check('bad_from', msg['From'])
         if rc:
-            logging.warn("From header matches \'%s\'. Rejecting." % rc)
+            logging.warning("From header matches \'%s\'. Rejecting." % rc)
             sys.exit(1)
     else:
         logging.info("Message has no From header. Inserting a null one.")
@@ -267,11 +267,11 @@ def msgparse(message):
     if os.path.isfile(poisonfile):
         for header in file2list(poisonfile):
             if header in msg:
-                logging.warn("Message contains a blacklisted %s header. "
+                logging.warning("Message contains a blacklisted %s header. "
                              "Rejecting it." % header)
                 sys.exit(0)
     else:
-        logging.warn("No headers_poison file.")
+        logging.warning("No headers_poison file.")
 
     # In priority order (highest first) look for the recipient details in these
     # headers or parameters.
@@ -281,7 +281,7 @@ def msgparse(message):
         recipient = msg['To']
     else:
         recipient = 'mail2news@m2n.mixmin.net'
-        logging.warn('Could not find recipient info. Guessing %s.', recipient)
+        logging.warning('Could not find recipient info. Guessing %s.', recipient)
     if not recipient.startswith('mail2news'):
         logging.error('Recipient %s is not us.', recipient)
         sys.exit(2)
@@ -305,7 +305,7 @@ def msgparse(message):
         (stamp, dest, nospam) = parse_recipient(recipient)
         # Check to see if the timestamp extracted from the recipient is valid.
         if not validate_stamp(stamp):
-            logging.warn("No Newsgroups header or valid recipient. Rejecting "
+            logging.warning("No Newsgroups header or valid recipient. Rejecting "
                          "message.")
             sys.exit(0)
     # Clean the newsgroups list by checking that each element seperated by ','
@@ -314,7 +314,7 @@ def msgparse(message):
     # Check for blacklisted Newsgroups.
     rc = blacklist_check('bad_groups', msg['Newsgroups'])
     if rc:
-        logging.warn("Newsgroups header matches \'%s\'. Rejecting." % rc)
+        logging.warning("Newsgroups header matches \'%s\'. Rejecting." % rc)
         sys.exit(1)
 
     # If we are in nospam mode, edit the From header and create an
@@ -344,7 +344,7 @@ def msgparse(message):
         for header in file2list(stripfile):
             del msg[header]
     else:
-        logging.warn("No headers_strip file.  Not removing any headers.")
+        logging.warning("No headers_strip file.  Not removing any headers.")
 
     # Add additional headers relating to the mail2news gateway.
     msg['Path'] = config.get('nntp', 'path_header')
@@ -360,7 +360,7 @@ def msgparse(message):
     txt_msg = msg.as_string()
     size = len(txt_msg)
     if size > config.getint('thresholds', 'max_bytes'):
-        logging.warn('Message exceeds %s size limit. Rejecting.'
+        logging.warning('Message exceeds %s size limit. Rejecting.'
                      % config.get('thresholds', 'max_bytes'))
         sys.exit(1)
     logging.debug('Message is %s bytes', size)
@@ -431,17 +431,17 @@ def newssend(mid, content):
             s = nntplib.NNTP(host, 119)
             logging.debug("%s: Connection established", host)
         except nntplib.NNTPPermanentError:
-            logging.warn('Connection to %s returned a permanent error: %s',
+            logging.warning('Connection to %s returned a permanent error: %s',
                          host, sys.exc_info()[1])
             continue
         except socket.timeout:
-            logging.warn('Timeout during IHAVE conection to %s', host)
+            logging.warning('Timeout during IHAVE conection to %s', host)
             continue
         except socket.gaierror as e:
-            logging.warn('%s: Connection error: %s', host, e)
+            logging.warning('%s: Connection error: %s', host, e)
             continue
         except socket.error as e:
-            logging.warn('%s: Connection error: %s', host, e)
+            logging.warning('%s: Connection error: %s', host, e)
         except:
             logging.traceback('%s: Unknown connection error', host)
             continue
@@ -452,7 +452,7 @@ def newssend(mid, content):
         except nntplib.NNTPTemporaryError:
             logging.info("IHAVE to %s returned: %s", host, sys.exc_info()[1])
         except nntplib.NNTPPermanentError:
-            logging.warn('IHAVE to %s returned a permanent error: %s',
+            logging.warning('IHAVE to %s returned a permanent error: %s',
                          host, sys.exc_info()[1])
         except:
             logging.traceback('IHAVE to %s returned an unknown error', host)
