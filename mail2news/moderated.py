@@ -30,6 +30,7 @@ for line in f:
         if fields[3] == 'm':
             grp = fields[0]
             mod[grp] = 1
-print "%d: Moderated groups written" % len(mod)
+modlen = len(mod)
+print("{0}: Moderated groups written".format(modlen))
 mod.close()
 f.close()
