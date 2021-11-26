@@ -23,7 +23,7 @@ import datetime
 import random
 import re
 import email
-import StringIO
+from io import StringIO
 import sys
 import logging
 import logging.handlers
@@ -31,7 +31,7 @@ import os.path
 import shelve
 from os import chmod
 import socket
-from email.Utils import formatdate
+from email.utils import formatdate
 import nntplib
 
 
@@ -436,10 +436,10 @@ def newssend(mid, content):
         except socket.timeout:
             logging.warn('Timeout during IHAVE conection to %s', host)
             continue
-        except socket.gaierror, e:
+        except socket.gaierror as e:
             logging.warn('%s: Connection error: %s', host, e)
             continue
-        except socket.error, e:
+        except socket.error as e:
             logging.warn('%s: Connection error: %s', host, e)
         except:
             logging.traceback('%s: Unknown connection error', host)
